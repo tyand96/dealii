@@ -20,7 +20,7 @@ The equation reads as follows:
     &V(S,T) = \max(S-K,0) \
     &&\forall S \in \Omega
 \end{align*}
-where 
+where
 \begin{align*}
     V(S,t): && \text{Value of call option at time t and asset price S} \\
     \sigma: && \text{Volatility of the underlying asset} \\
@@ -40,13 +40,13 @@ Second, after truncating the domain, we need to ask what boundary values we shou
 \begin{align*}
     V(S,t)+Ke^{-r(T-t)}=P(S,t)+S
 \end{align*}
-where $V(S,t)$ is the value of the call option, and $P(S,t)$ is the value of the put option. Since we expect $P(S,t) \rightarrow 0$ as $S \rightarrow \infty$, this says 
+where $V(S,t)$ is the value of the call option, and $P(S,t)$ is the value of the put option. Since we expect $P(S,t) \rightarrow 0$ as $S \rightarrow \infty$, this says
 \begin{align*}
     V(S,t) \rightarrow S-Ke^{-r(T-t)},
 \end{align*}
 and we can use this as a reasonable boundary condition at our finite point $\smax$
 
-The second complication of the Block-Scholes equation is that we are given a final condition, and not an initial condition. This is because we know what the option is worth at time $t=T$: If the stock price at $T$ is $S<K$, then I have no incentive to use my option of buying a price $K$ because I can buy that stock for cheaper on the open market. So $V(S,T)=0$ for $S<K$. On the other hand, if at time $T$ we have $S>K$, then I can buy my stock at price $K$ via the option and immediately sell it again on the market for price $S$, giving me a profit of $S-K$. In other words, $V(S,T)=S-K$ for $S>K$. In other words, we only know values for $V$ at the *end time* but not the initial time -- in fact, finding out what a fair price at the current time (conventionally taken to be $t=0$) is what solving these equations is all about. 
+The second complication of the Block-Scholes equation is that we are given a final condition, and not an initial condition. This is because we know what the option is worth at time $t=T$: If the stock price at $T$ is $S<K$, then I have no incentive to use my option of buying a price $K$ because I can buy that stock for cheaper on the open market. So $V(S,T)=0$ for $S<K$. On the other hand, if at time $T$ we have $S>K$, then I can buy my stock at price $K$ via the option and immediately sell it again on the market for price $S$, giving me a profit of $S-K$. In other words, $V(S,T)=S-K$ for $S>K$. In other words, we only know values for $V$ at the *end time* but not the initial time -- in fact, finding out what a fair price at the current time (conventionally taken to be $t=0$) is what solving these equations is all about.
 
 What this means that this is not an equation that is posed going forward in time, but in fact going *backward* in time. Thus it makes sense to solve this problem in reverse by making the change of variables $\tau=T-t$ where now $\tau$ denotes "time before the strike time $T$".
 
@@ -65,7 +65,7 @@ With all of this, we finally end up with the following problem:
     &&\forall S \in [0,S_\text{max}]
 \end{align*}
 
-Conceptually, this is an advection-diffusion-reaction problem for the variable $V$: There is both a second-order derivative diffusion term, a first-order derivative advection term, and a zeroth-order reaction term. 
+Conceptually, this is an advection-diffusion-reaction problem for the variable $V$: There is both a second-order derivative diffusion term, a first-order derivative advection term, and a zeroth-order reaction term.
 We can expect this problem to be a little bit forgiving in practice because for realistic values of the coefficients, it is diffusive dominated. But, because of the advective terms in the problem, we will have to be careful with mesh refinement and time step choice. There is also the issue that the diffusion term is written in a non-conservative form and so integration by parts is not immediately obvious.
 
 We will solve this problem using the fractional step method (of which the Crank-Nicolson method is a special case with $\theta=\frac 12$; the explicit Euler method corresponds to $\theta=0$ and the implicit Euler method to $\theta=1$). So, we first discretize in time, where we would like $V^n(S)$ to approximate $V(S,\tau_n)$:
@@ -75,7 +75,7 @@ We will solve this problem using the fractional step method (of which the Crank-
     &+rS\left[(1-\theta)\frac{dV^{n-1}(S)}{dS} + \theta\frac{dV^{n}(S)}{dS}\right]  \\
     &-r\left[(1-\theta)V^{n-1}(S) + \theta V^n(S)\right]
 \end{align*}
-Here, $k_n=\tau_n-\tau_{n-1}$ is the time step size. Given this time discretization, we can proceed to discretize space by multiplying with test functions and then integrating by parts. Because there are some interesting details in this due to the advective and non-advective terms in this equation, this process will be explained in detail. 
+Here, $k_n=\tau_n-\tau_{n-1}$ is the time step size. Given this time discretization, we can proceed to discretize space by multiplying with test functions and then integrating by parts. Because there are some interesting details in this due to the advective and non-advective terms in this equation, this process will be explained in detail.
 
 So, we begin by multiplying by test functions, $\{\phi_i(S)\}_{i\in\mathbb{N}}$:
 \begin{align}
@@ -94,41 +94,41 @@ The interesting parts come from (2) and (3).
 For (2), we have:
 \begin{align*}
     &k_n\int_0^{\smax}\phi_i(S)[\frac{\sigma^2S^2}{2}[(1-\theta)\frac{d^2V^{n-1}(S)}{dS^2} + \theta \frac{d^2V^{n}(S)}{dS^2}]]dS \\
-    &=k_n(1-\theta)\int_0^{\smax}\phi_i(S)\frac{\sigma^2S^2}{2}\frac{d^2V^{n-1}(S)}{dS^2} \ 
+    &=k_n(1-\theta)\int_0^{\smax}\phi_i(S)\frac{\sigma^2S^2}{2}\frac{d^2V^{n-1}(S)}{dS^2} \
     +k_n\theta\int_0^{\smax}\phi_i(S)\frac{\sigma^2S^2}{2}\frac{d^2V^{n}(S)}{dS^2}
 \end{align*}
 
 There are two integrals here, that are more or less the same, with the differences being a slightly different coefficient in front of the integral, and a different time step for V. Therefore, we will outline this integral in the general case, and account for the differences at the end. So, consider the general integral, which we will solve using integration by parts:
 \begin{align*}
     &\int_{0}^{\smax} \phi_i(S)\frac{\sigma^2S^2}{2}\frac{d^2V^n(S)}{dS^2}dS \\
-    &= \phi_i(S)\frac{1}{2}\sigma^2S^2\frac{dV^n(S)}{dS}\Bigg|_0^{S_{max}} - \ 
-    \int_0^{\smax} \phi_i(S)\sigma^2S\frac{dV^n(S)}{dS}dS - \ 
+    &= \phi_i(S)\frac{1}{2}\sigma^2S^2\frac{dV^n(S)}{dS}\Bigg|_0^{S_{max}} - \
+    \int_0^{\smax} \phi_i(S)\sigma^2S\frac{dV^n(S)}{dS}dS - \
     \int_0^{\smax} \frac{d\phi_i(S)}{dS}\frac{1}{2}\sigma^2S^2\frac{dV^n(S)}{dS}dS \\
-    &= -\int_0^{\smax} \phi_i(S)\sigma^2S\frac{dV^n(S)}{dS}dS - \ 
+    &= -\int_0^{\smax} \phi_i(S)\sigma^2S\frac{dV^n(S)}{dS}dS - \
     \int_0^{\smax} \frac{d\phi_i(S)}{dS}\frac{1}{2}\sigma^2S^2\frac{dV^n(S)}{dS}dS \\
-    &= -\int_0^{\smax} \phi_i(S)\sigma^2S \sum_j V_j^n \frac{d\phi_j(S)}{dS}dS \ 
-    -\int_0^{\smax} \frac{d\phi_i(S)}{dS}\frac{1}{2} \sigma^2S^2  \sum_k V_k^n \frac{d\phi_k(S)}{dS}dS \\ 
-    &= -\sum_j \sigma^2 \int_0^{\smax} \phi_i(S)S \frac{d\phi_j(S)}{dS}dS V_j^n \ 
-    - \sum_k \frac{1}{2}\sigma^2 \int_0^{\smax} \frac{d\phi_i(S)}{dS}S^2  \frac{d\phi_k}{dS}dS V_k^n \\ 
-    &= -\sum_j \sigma^2 \left<\phi_i(S)S, \frac{d\phi_j(S)}{dS}\right> V_j^n \ 
+    &= -\int_0^{\smax} \phi_i(S)\sigma^2S \sum_j V_j^n \frac{d\phi_j(S)}{dS}dS \
+    -\int_0^{\smax} \frac{d\phi_i(S)}{dS}\frac{1}{2} \sigma^2S^2  \sum_k V_k^n \frac{d\phi_k(S)}{dS}dS \\
+    &= -\sum_j \sigma^2 \int_0^{\smax} \phi_i(S)S \frac{d\phi_j(S)}{dS}dS V_j^n \
+    - \sum_k \frac{1}{2}\sigma^2 \int_0^{\smax} \frac{d\phi_i(S)}{dS}S^2  \frac{d\phi_k}{dS}dS V_k^n \\
+    &= -\sum_j \sigma^2 \left<\phi_i(S)S, \frac{d\phi_j(S)}{dS}\right> V_j^n \
     - \sum_k \frac{1}{2}\sigma^2 \left<\frac{d\phi_i(S)}{dS}S^2, \frac{d\phi_k(S)}{dS}\right> V_k^n \\
-    &= -\sigma^2\bold{B}V^n - \frac{1}{2}\sigma^2\bold{D}V^n, \quad\quad \ 
-    \bold{B}_{i,j} = \left<\phi_i(S)S, \frac{d\phi_j(S)}{dS}\right>,\ 
+    &= -\sigma^2\bold{B}V^n - \frac{1}{2}\sigma^2\bold{D}V^n, \quad\quad \
+    \bold{B}_{i,j} = \left<\phi_i(S)S, \frac{d\phi_j(S)}{dS}\right>,\
     \bold{D}_{i,j} = \left<\frac{d\phi_i(S)}{dS}S^2, \frac{d\phi_j(S)}{dS}\right>
 \end{align*}
 
 So, after adding in the constants and exchanging $V^n$ for $V^{n-1}$ where applicable, we arrive at the following for (2):
 \begin{align*}
     &k_n\int_0^{\smax}\phi_i(S)\left[\frac{\sigma^2S^2}{2}\left[(1-\theta)\frac{d^2V^{n-1}(S)}{dS^2} + \theta \frac{d^2V^{n}(S)}{dS^2}\right]\right]dS \\
-    &= k_n\left[-(1-\theta)\sigma^2\bold{B}V^{n-1} -(1-\theta)\frac{1}{2}\sigma^2\bold{D}V^{n-1} \ 
+    &= k_n\left[-(1-\theta)\sigma^2\bold{B}V^{n-1} -(1-\theta)\frac{1}{2}\sigma^2\bold{D}V^{n-1} \
     -\theta\sigma^2\bold{B}V^{n} -\theta\frac{1}{2}\sigma^2\bold{D}V^{n}\right]
 \end{align*}
 But, because the matrix \textbf{B} involves an advective term, we will choose $\theta=0$ there -- in other words, we use an explicit Euler method to treat advection. Conversely, since the matrix \textbf{D} involves the diffusive term, we will choose $\theta=1/2$ there -- i.e., we treat diffusion using the second order Crank-Nicolson method.
 
 So, we arrive at the following:
 \begin{align*}
-    k_n\left[-\frac{1}{4}\sigma^2\bold{D}V^{n-1} \ 
-    -\frac{1}{4}\sigma^2\bold{D}V^n \ 
+    k_n\left[-\frac{1}{4}\sigma^2\bold{D}V^{n-1} \
+    -\frac{1}{4}\sigma^2\bold{D}V^n \
     - \sigma^2\bold{B}V^{n-1}\right]
 \end{align*}
 
@@ -136,9 +136,9 @@ Now, to handle (3). For this, we will again proceed by considering the general c
 
 \begin{align*}
     &\int_{0}^{\smax} \phi_i(S)rS\frac{dV^n}{dS}dS \\
-    &= \phi_i(S)rSV^n\Bigg|_0^{\smax} - \int_0^{\smax} \left[r\phi_i(S) + r\frac{d\phi_i(S)}{dS}S \right]V^ndS \\ 
+    &= \phi_i(S)rSV^n\Bigg|_0^{\smax} - \int_0^{\smax} \left[r\phi_i(S) + r\frac{d\phi_i(S)}{dS}S \right]V^ndS \\
     &= -\int_0^{\smax} r\phi_i(S)V^ndS - \int_0^{\smax} r\frac{d\phi_i(S)}{dS}SV^ndS \\
-    &= -\int_0^{\smax} r\phi_i(S) \sum_j V_j^n\phi_j(S)dS \ 
+    &= -\int_0^{\smax} r\phi_i(S) \sum_j V_j^n\phi_j(S)dS \
     -\int_0^{\smax} rS\frac{d\phi_i(S)}{dS} \sum_k V_k\phi_k(S)dS \\
     &= -\sum_j r\left<\phi_i(S), \phi_j(S)\right> V_j^n - \sum_k r\left<S\frac{d\phi_i(S)}{dS}, \phi_k(S)\right>V_k^n \\
     &= -r\bold{M}V^n -r\bold{A}V^n, \quad\quad \bold{M}_{i,j} = \left<\phi_i(S), \phi_j(S)\right>, \bold{A}_{i,j} = \left<S\frac{d\phi_i(S)}{dS}, \phi_j(S)\right>
@@ -147,23 +147,23 @@ Now, to handle (3). For this, we will again proceed by considering the general c
 So, again after adding in the constants and exchanging $V^n$ for $V^{n-1}$ where applicable, we arrive at the following for (3):
 \begin{align*}
     &k_n\int_0^{\smax}\phi_i(S)\left[rS\left[(1-\theta)\frac{dV^{n-1}(S)}{dS} + \theta\frac{dV^{n}(S)}{dS}\right]\right]dS \\
-    &= k_n\left[-(1-\theta)r\bold{M}V^{n-1} -(1-\theta)r\bold{A}V^{n-1}\ 
+    &= k_n\left[-(1-\theta)r\bold{M}V^{n-1} -(1-\theta)r\bold{A}V^{n-1}\
     -\theta r\bold{M}V^n -\theta r\bold{A}V^n\right]
 \end{align*}
 Just as before, we will use $\theta=0$ for the matrix \textbf{A} and $\theta=\frac{1}{2}$ for the matrix \textbf{M}. So , we arrive at the following for (3):
 \begin{align*}
-    k_n\left[-\frac{1}{2}r\bold{M}V^{n-1} - \frac{1}{2}r\bold{M}V^n \ 
+    k_n\left[-\frac{1}{2}r\bold{M}V^{n-1} - \frac{1}{2}r\bold{M}V^n \
     -r\bold{A}V^{n-1}\right]
 \end{align*}
 
 Now, putting everything together, we obtain the following discrete form for the Black-Scholes Equation:
 \begin{align*}
     0&= \\
-    &-\bold{M}V^n+\bold{M}V^{n-1} \\ 
-    & +k_n\left[-\frac{1}{4}\sigma^2\bold{D}V^{n-1} \ 
-    -\frac{1}{4}\sigma^2\bold{D}V^n \ 
+    &-\bold{M}V^n+\bold{M}V^{n-1} \\
+    & +k_n\left[-\frac{1}{4}\sigma^2\bold{D}V^{n-1} \
+    -\frac{1}{4}\sigma^2\bold{D}V^n \
     - \sigma^2\bold{B}V^n \
-     -\frac{1}{2}r\bold{M}V^{n-1} - \frac{1}{2}r\bold{M}V^n \ 
+     -\frac{1}{2}r\bold{M}V^{n-1} - \frac{1}{2}r\bold{M}V^n \
     -r\bold{A}V^n \
      -r\frac{1}{2}\bold{M}V^{n-1} - \frac{1}{2} r\bold{M}V^n\right] \\
     &= -\bold{M}V^n + \bold{M}V^{n-1} + k_n\left[- \frac{1}{4}\sigma^2\bold{D}V^{n-1} - \frac{1}{4}\sigma^2\bold{D}V^n - r\bold{M}V^{n-1} - r\bold{M}V^n  - \sigma^2\bold{B}V^{n-1} - r\bold{A}V^{n-1}\right]
