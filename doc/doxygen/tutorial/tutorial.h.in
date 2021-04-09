@@ -602,6 +602,11 @@
  *       <td> The Symmetric interior penalty Galerkin (SIPG) method for Poisson's equation.
  *       <br/> Keywords: MeshWorker::mesh_loop(), FEInterfaceValues, ConvergenceTable
  *       </td></tr>
+ * 
+ *   <tr valign="top">
+ *       <td>step-78</td>
+ *       <td> Solves the Black-Scholes equation for options pricing in 1-D.
+ *       </td></tr>
  *
  * </table>
  *
