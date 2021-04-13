@@ -57,7 +57,7 @@ namespace BlackScholesSolver
   class Solution : public Function<dim>
   {
   public:
-    Solution(double __maturity_time);
+    Solution(double maturity_time);
     virtual double value(const Point<dim> & p,
                          const unsigned int component = 0) const override;
 
@@ -69,7 +69,7 @@ namespace BlackScholesSolver
                               const unsigned int component = 0) const;
 
   private:
-    double _maturity_time;
+    double maturity_time;
   };
 
 
@@ -77,19 +77,14 @@ namespace BlackScholesSolver
   double Solution<dim>::value(const Point<dim> & p,
                               const unsigned int component) const
   {
-    double return_value = 0;
-    return_value +=
-      -std::pow(p(component), 2) - std::pow(this->get_time(), 2) + 6;
-    return return_value;
+    return -std::pow(p(component), 2) - std::pow(this->get_time(), 2) + 6;
   }
 
   template <int dim>
   Tensor<1, dim> Solution<dim>::gradient(const Point<dim> & p,
                                          const unsigned int component) const
   {
-    Tensor<1, dim> return_value;
-    return_value = Point<1>(-2 * p(component));
-    return return_value;
+    return Point<1>(-2 * p(component));
   }
 
   template <int dim>
@@ -97,7 +92,7 @@ namespace BlackScholesSolver
                                            const unsigned int component) const
   {
     Tensor<1, dim> return_value;
-    for (int i = 0; dim; i++)
+    for (int i = 0; dim; ++i)
       {
         return_value += -2 * (this->get_time()) * std::sin(p(i)) * Point<1>(1);
       }
@@ -116,28 +111,29 @@ namespace BlackScholesSolver
   public:
     BlackScholes();
 
-    // enum RefinementMode
-    // {
-    //     global_refinement,
-    //     adaptive_refinement
-    // };
-
     void run();
 
+    /*
+    Below are the parameters for the problem. 
+    's_max': The imposed upper bound on the spatial domain. This is the maximum
+    allowed stock price.
+    'maturity_time': The upper bound on the time domain. This is when the option
+    expires.
+    'sigma': The volatility of the stock price.
+    'r': The risk free interest rate.
+    'strike_price': The aggreed upon price that the buyer will have the option 
+    of purchasing  the stocks at the expiration time. 
+    */
     const double s_max;
     const double maturity_time;
     const double sigma;
     const double r;
     const double strike_price;
 
-    // RefinementMode refinement_mode;
-
   private:
     void setup_system();
     void solve_time_step();
     void solve_time_step_diffusion();
-    void refine_mesh(const unsigned int min_grid_level,
-                     const unsigned int max_grid_level);
     void refine_grid();
     void o_results();
     void process_solution(const unsigned int cycle);
@@ -186,7 +182,7 @@ namespace BlackScholesSolver
   class InitialConditions : public Function<dim>
   {
   public:
-    InitialConditions(double _s_price);
+    InitialConditions(double s_price);
     double         s_price;
     virtual double value(const Point<dim> & p,
                          const unsigned int component = 0) const override;
@@ -230,13 +226,13 @@ namespace BlackScholesSolver
   class RightBoundaryValues : public Function<dim>
   {
   public:
-    RightBoundaryValues(double __s_price, double __r);
+    RightBoundaryValues(double s_price, double r);
     virtual double value(const Point<dim> & p,
                          const unsigned int component = 0) const override;
 
   private:
-    double _s_price;
-    double _r;
+    double s_price;
+    double r;
   };
 
 
@@ -255,13 +251,13 @@ namespace BlackScholesSolver
   class RightHandSide : public Function<dim>
   {
   public:
-    RightHandSide(double __sigma, double __r);
+    RightHandSide(double sigma, double r);
     virtual double value(const Point<dim> & p,
                          const unsigned int component = 0) const override;
 
   private:
-    double _sigma;
-    double _r;
+    double sigma;
+    double r;
   };
 
   template <int dim>
@@ -270,15 +266,37 @@ namespace BlackScholesSolver
   {
     (void)component;
     // return 0;
-    return 2 * (this->get_time()) - std::pow(_sigma * p(component), 2) -
-           2 * _r * std::pow(p(component), 2) -
-           _r *
-             (-std::pow(p(component), 2) - std::pow(this->get_time(), 2) + 6);
+    return 2 * (this->get_time()) - std::pow(sigma * p(component), 2) -
+           2 * r * std::pow(p(component), 2) -
+           r *
+            (-std::pow(p(component), 2) - std::pow(this->get_time(), 2) + 6);
 
     // Below is the original right hand side
     // return 0.0
   }
 
+  template <int dim>
+  InitialConditions<dim>::InitialConditions(double s_price)
+    : s_price(s_price){}
+
+  template <int dim>
+  LeftBoundaryValues<dim>::LeftBoundaryValues()
+  {}
+
+  template <int dim>
+  RightBoundaryValues<dim>::RightBoundaryValues(double s_price, double r)
+    : s_price(s_price)
+    , r(r){}
+
+  template <int dim>
+  RightHandSide<dim>::RightHandSide(double sigma, double r)
+    : sigma(sigma)
+    , r(r){}
+
+  template <int dim>
+  Solution<dim>::Solution(double maturity_time)
+    : maturity_time(maturity_time){}
+  
   /*
   Now, we get to the implementation of the main class. This is the constructor,
   which sets the various parameters as described in the introduction.
@@ -297,36 +315,6 @@ namespace BlackScholesSolver
     , maturity_time(1.)
     , n_cycles(8)
   {}
-
-  template <int dim>
-  InitialConditions<dim>::InitialConditions(double _s_price)
-  {
-    s_price = _s_price;
-  }
-
-  template <int dim>
-  LeftBoundaryValues<dim>::LeftBoundaryValues()
-  {}
-
-  template <int dim>
-  RightBoundaryValues<dim>::RightBoundaryValues(double __s_price, double __r)
-  {
-    _s_price = __s_price;
-    _r       = __r;
-  }
-
-  template <int dim>
-  RightHandSide<dim>::RightHandSide(double __sigma, double __r)
-  {
-    _sigma = __sigma;
-    _r     = __r;
-  }
-
-  template <int dim>
-  Solution<dim>::Solution(double __maturity_time)
-  {
-    _maturity_time = __maturity_time;
-  }
 
   /*
   The next function is the one that sets up the DoFHandler object, computes the
@@ -371,7 +359,6 @@ namespace BlackScholesSolver
                                       QGauss<dim>(fe.degree + 1),
                                       mass_matrix);
 
-    // Code to make Laplace Matrix with non constant coefficients
     /*
     Below is the code to create the Laplace matrix with non constant
     coefficients. This corresponds to the matrix D in the introduction. This
@@ -413,9 +400,7 @@ namespace BlackScholesSolver
                                  cell_matrix(i, j));
           }
       }
-    // End of code to make Laplacian matrix
 
-    // Code to make A matrix
     /*
     Below is the code to create the 'A' matrix as discussed in the introduction.
     The 'S' coefficient is represented in the 'current\_coefficient' variable.
@@ -449,9 +434,7 @@ namespace BlackScholesSolver
                            cell_matrix(i, j));
           }
       }
-    // End of code to make A matrix
 
-    // Code to make B matrix
     /*
     Below is the code to create the 'B' matrix as discussed in the introduction.
     The 'S' coefficient is represented in the 'current\_coefficient' variable.
@@ -483,13 +466,13 @@ namespace BlackScholesSolver
                            cell_matrix(i, j));
           }
       }
-    // End of code to make B matrix
 
 
     solution.reinit(dof_handler.n_dofs());
     old_solution.reinit(dof_handler.n_dofs());
     system_rhs.reinit(dof_handler.n_dofs());
   }
+
   /*
   The next function solves the timestep.
   */
@@ -507,7 +490,7 @@ namespace BlackScholesSolver
   }
 
   /*
-  This is simply the function to build the solution together. For this, we
+  It is simply the function to build the solution together. For this, we
   create a new layer at each time, and then add the solution vector for that
   timestep. The function then stitches this together with the old solutions
   using 'build_patches'.
@@ -520,43 +503,6 @@ namespace BlackScholesSolver
     data_out_stack.add_data_vector(solution, solution_names);
     data_out_stack.build_patches(2);
     data_out_stack.finish_parameter_value();
-  }
-
-  /*
-  This is the function that refines the spatial mesh. This is exactly what was
-  used in Step-26, so there is nothing new here.
-  */
-  template <int dim>
-  void BlackScholes<dim>::refine_mesh(const unsigned int min_grid_level,
-                                      const unsigned int max_grid_level)
-  {
-    Vector<float> estimated_error_per_cell(triangulation.n_active_cells());
-    KellyErrorEstimator<dim>::estimate(
-      dof_handler,
-      QGauss<dim - 1>(fe.degree + 1),
-      std::map<types::boundary_id, const Function<dim> *>(),
-      solution,
-      estimated_error_per_cell);
-    GridRefinement::refine_and_coarsen_fixed_fraction(triangulation,
-                                                      estimated_error_per_cell,
-                                                      0.6,
-                                                      0.4);
-    if (triangulation.n_levels() > max_grid_level)
-      for (const auto &cell :
-           triangulation.active_cell_iterators_on_level(max_grid_level))
-        cell->clear_refine_flag();
-    for (const auto &cell :
-         triangulation.active_cell_iterators_on_level(min_grid_level))
-      cell->clear_coarsen_flag();
-    SolutionTransfer<dim> solution_trans(dof_handler);
-    Vector<double>        previous_solution;
-    previous_solution = solution;
-    triangulation.prepare_coarsening_and_refinement();
-    solution_trans.prepare_for_coarsening_and_refinement(previous_solution);
-    triangulation.execute_coarsening_and_refinement();
-    setup_system();
-    solution_trans.interpolate(previous_solution, solution);
-    constraints.distribute(solution);
   }
 
   /*
@@ -585,7 +531,7 @@ namespace BlackScholesSolver
   {
     const unsigned int initial_global_refinement = 0; // 5 8
 
-    GridGenerator::hyper_cube(triangulation, 0.0, s_max);
+    GridGenerator::hyper_cube(triangulation, 0.0, s_max, true);
     triangulation.refine_global(initial_global_refinement);
 
 
@@ -625,10 +571,6 @@ namespace BlackScholesSolver
           {
             o_results();
           }
-
-        // In the case of the line, the boundary id's are already what they
-        // should be
-
 
 
         /*
@@ -860,9 +802,30 @@ int main()
       BlackScholes<1> black_scholes_solver;
       black_scholes_solver.run();
     }
+  catch (std::exception &exc)
+    {
+      std::cerr << std::endl
+                << std::endl
+                << "----------------------------------------------------"
+                << std::endl;
+      std::cerr << "Exception on processing: " << std::endl
+                << exc.what() << std::endl
+                << "Aborting!" << std::endl
+                << "----------------------------------------------------"
+                << std::endl;
+      return 1;
+    }
   catch (...)
     {
-      std::cout << "Error";
+      std::cerr << std::endl
+                << std::endl
+                << "----------------------------------------------------"
+                << std::endl;
+      std::cerr << "Unknown exception!" << std::endl
+                << "Aborting!" << std::endl
+                << "----------------------------------------------------"
+                << std::endl;
+      return 1;
     }
   return 0;
 }
