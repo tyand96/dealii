@@ -115,15 +115,15 @@ namespace BlackScholesSolver
     void run();
 
     /*
-    Below are the parameters for the problem. 
+    Below are the parameters for the problem.
     's_max': The imposed upper bound on the spatial domain. This is the maximum
     allowed stock price.
     'maturity_time': The upper bound on the time domain. This is when the option
     expires.
     'sigma': The volatility of the stock price.
     'r': The risk free interest rate.
-    'strike_price': The aggreed upon price that the buyer will have the option 
-    of purchasing  the stocks at the expiration time. 
+    'strike_price': The aggreed upon price that the buyer will have the option
+    of purchasing  the stocks at the expiration time.
     */
     const double s_max;
     const double maturity_time;
@@ -269,8 +269,7 @@ namespace BlackScholesSolver
     // return 0;
     return 2 * (this->get_time()) - std::pow(sigma * p(component), 2) -
            2 * r * std::pow(p(component), 2) -
-           r *
-            (-std::pow(p(component), 2) - std::pow(this->get_time(), 2) + 6);
+           r * (-std::pow(p(component), 2) - std::pow(this->get_time(), 2) + 6);
 
     // Below is the original right hand side
     // return 0.0
@@ -278,7 +277,8 @@ namespace BlackScholesSolver
 
   template <int dim>
   InitialConditions<dim>::InitialConditions(double s_price)
-    : s_price(s_price){}
+    : s_price(s_price)
+  {}
 
   template <int dim>
   LeftBoundaryValues<dim>::LeftBoundaryValues()
@@ -287,17 +287,20 @@ namespace BlackScholesSolver
   template <int dim>
   RightBoundaryValues<dim>::RightBoundaryValues(double s_price, double r)
     : s_price(s_price)
-    , r(r){}
+    , r(r)
+  {}
 
   template <int dim>
   RightHandSide<dim>::RightHandSide(double sigma, double r)
     : sigma(sigma)
-    , r(r){}
+    , r(r)
+  {}
 
   template <int dim>
   Solution<dim>::Solution(double maturity_time)
-    : maturity_time(maturity_time){}
-  
+    : maturity_time(maturity_time)
+  {}
+
   /*
   Now, we get to the implementation of the main class. This is the constructor,
   which sets the various parameters as described in the introduction.
@@ -830,4 +833,3 @@ int main()
     }
   return 0;
 }
-
