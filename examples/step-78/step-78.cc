@@ -303,17 +303,17 @@ namespace BlackScholesSolver
   */
   template <int dim>
   BlackScholes<dim>::BlackScholes()
-    : fe(1)
+    : s_max(1.)
+    , maturity_time(1.)
+    , sigma(.2)
+    , r(0.05)
+    , strike_price(0.5)
+    , fe(1)
     , dof_handler(triangulation)
     , time(0.0)
     , timestep_number(0)
     , theta(0.5)
-    , s_max(1.)
-    , sigma(.2)
-    , r(0.05)
-    , strike_price(0.5)
-    , maturity_time(1.)
-    , n_cycles(8)
+    , n_cycles(3)
   {}
 
   /*
