@@ -91,6 +91,7 @@ namespace BlackScholesSolver
   Tensor<1, dim> Solution<dim>::time_deriv(const Point<dim> & p,
                                            const unsigned int component) const
   {
+    (void)component;
     Tensor<1, dim> return_value;
     for (int i = 0; dim; ++i)
       {
