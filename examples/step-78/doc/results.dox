@@ -2,7 +2,7 @@
 
 
 Below is the output of the program:
-\begin{lstlisting}
+@f{lstlisting}{
 ===========================================
 Number of active cells: 1
 Number of degrees of freedom: 2
@@ -43,15 +43,15 @@ n cells         H1                  L2
      64 9.022e-03 2.00 1.00 3.306e-05 4.41 2.14
     128 4.511e-03 2.00 1.00 5.014e-06 6.59 2.72
 
-\end{lstlisting}
+@f}
 
 What is more interesting is the output of the convergence tables. They are outputted into the console, as well into a LaTex file. Below are the contents of these files.
 
-\begin{table}[h]
+@f{table}[h]{
 \captionof{table}{Error Table}
-\begin{center}
-\begin{tabular}{|r|r|c|c|c|} \hline
-\# cells & \# dofs & $L^2$-error & $H^1$-error & $L^\infty$-error\\ \hline
+@f{center}{
+@f{tabular}{|r|r|c|c|c|}{ \hline
+\# cells & \# dofs & @f$L^2$-error & @f$H^1$-error & @f$L^\infty$-error\\ \hline
 1 & 2 & 1.667e-01 & 5.774e-01 & 2.222e-01\\ \hline
 2 & 3 & 3.906e-02 & 2.889e-01 & 5.380e-02\\ \hline
 4 & 5 & 9.679e-03 & 1.444e-01 & 1.357e-02\\ \hline
@@ -60,18 +60,18 @@ What is more interesting is the output of the convergence tables. They are outpu
 32 & 33 & 1.457e-04 & 1.804e-02 & 2.155e-04\\ \hline
 64 & 65 & 3.306e-05 & 9.022e-03 & 5.388e-05\\ \hline
 128 & 129 & 5.014e-06 & 4.511e-03 & 1.342e-05\\ \hline
-\end{tabular}
-\end{center}
-\end{table}
+@f}
+@f}
+@f}
 
-\begin{table}[h]
+@f{table}[h]{
 \centering
 \captionof{table}{Convergence Table}
-\begin{tabular}{|r|c|c|c|c|c|c|} \hline
+@f{tabular}{|r|c|c|c|c|c|c|}{ \hline
 
 \multicolumn{1}{|c|}{n cells} &
-\multicolumn{3}{|c|}{$H^1$-error} &
-\multicolumn{3}{|c|}{$L^2$-error}\\ \hline
+\multicolumn{3}{|c|}{@f$H^1$-error} &
+\multicolumn{3}{|c|}{@f$L^2$-error}\\ \hline
 1 & 5.774e-01 & - & - & 1.667e-01 & - & -\\ \hline
 2 & 2.889e-01 & 2.00 & 1.00 & 3.906e-02 & 4.27 & 2.09\\ \hline
 4 & 1.444e-01 & 2.00 & 1.00 & 9.679e-03 & 4.04 & 2.01\\ \hline
@@ -80,14 +80,14 @@ What is more interesting is the output of the convergence tables. They are outpu
 32 & 1.804e-02 & 2.00 & 1.00 & 1.457e-04 & 4.10 & 2.03\\ \hline
 64 & 9.022e-03 & 2.00 & 1.00 & 3.306e-05 & 4.41 & 2.14\\ \hline
 128 & 4.511e-03 & 2.00 & 1.00 & 5.014e-06 & 6.59 & 2.72\\ \hline
-\end{tabular}
-\end{table}
+@f}
+@f}
 
 Below is the visualization of the solution.
 
-\begin{figure}[h]
+@f{figure}[h]{
     \centering
     \includegraphics[width=100mm,height=70mm]{visit0000.png}
     \caption{Output of Program}
     \label{fig:my_label}
-\end{figure}
+@f}
