@@ -771,7 +771,7 @@ namespace BlackScholesSolver
       VectorTools::compute_global_error(triangulation,
                                         difference_per_cell,
                                         VectorTools::H1_seminorm);
-    const QTrapez<1>     q_trapez;
+    const QTrapezoid<1>     q_trapez;
     const QIterated<dim> q_iterated(q_trapez, fe.degree * 2 + 1);
     VectorTools::integrate_difference(dof_handler,
                                       solution,
