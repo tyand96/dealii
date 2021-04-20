@@ -216,9 +216,9 @@ applicable, we arrive at the following for (2):
      -(1-\theta)\frac{1}{2}\sigma^2\bold{D}V^{n-1} \
     -\theta\sigma^2\bold{B}V^{n} -\theta\frac{1}{2}\sigma^2\bold{D}V^{n}\right]
 @f}
-But, because the matrix \textbf{B} involves an advective term, we will choose
+But, because the matrix $\textbf{B}$ involves an advective term, we will choose
 $\theta=0$ there -- in other words, we use an explicit Euler method to treat
-advection. Conversely, since the matrix \textbf{D} involves the diffusive term,
+advection. Conversely, since the matrix $\textbf{D}$ involves the diffusive term,
 we will choose $\theta=1/2$ there -- i.e., we treat diffusion using the second
 order Crank-Nicolson method.
 
@@ -255,8 +255,8 @@ applicable, we arrive at the following for (3):
     &= k_n\left[-(1-\theta)r\bold{M}V^{n-1} -(1-\theta)r\bold{A}V^{n-1}\
     -\theta r\bold{M}V^n -\theta r\bold{A}V^n\right]
 @f}
-Just as before, we will use $\theta=0$ for the matrix \textbf{A} and
-$\theta=\frac{1}{2}$ for the matrix \textbf{M}. So , we arrive at the following
+Just as before, we will use $\theta=0$ for the matrix $\textbf{A}$ and
+$\theta=\frac{1}{2}$ for the matrix $\textbf{M}$. So , we arrive at the following
 for (3):
 @f{align*}{
     k_n\left[-\frac{1}{2}r\bold{M}V^{n-1} - \frac{1}{2}r\bold{M}V^n \
