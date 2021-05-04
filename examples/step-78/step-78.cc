@@ -104,12 +104,19 @@ namespace BlackScholesSolver
     return Point<dim>(-2 * p(component));
   }
 
+  template <int dim>
+  Solution<dim>::Solution(double maturity_time)
+    : maturity_time(maturity_time)
+  {}
+
   // @sect3{Equation Data}
 
   // In the following classes and functions, we implement the various pieces of
   // data that define this problem (right hand side and boundary values) that
   // are used in this program and for which we need function objects. The right
   // hand side is chosen as discussed at the end of the introduction.
+
+  // First, we handle the initial condition.
   template <int dim>
   class InitialConditions : public Function<dim>
   {
@@ -134,6 +141,12 @@ namespace BlackScholesSolver
   }
 
   template <int dim>
+  InitialConditions<dim>::InitialConditions(double s_price)
+    : s_price(s_price)
+  {}
+
+  // Next, we handle the left boundary condition.
+  template <int dim>
   class LeftBoundaryValues : public Function<dim>
   {
   public:
@@ -155,6 +168,11 @@ namespace BlackScholesSolver
     return 0.0;
   }
 
+  template <int dim>
+  LeftBoundaryValues<dim>::LeftBoundaryValues()
+  {}
+
+  // Then, we handle the right boundary condition.
   template <int dim>
   class RightBoundaryValues : public Function<dim>
   {
@@ -184,6 +202,14 @@ namespace BlackScholesSolver
   }
 
   template <int dim>
+  RightBoundaryValues<dim>::RightBoundaryValues(double s_price, 
+                                                double interest_rate)
+    : s_price(s_price)
+    , interest_rate(interest_rate)
+  {}
+
+  // Finally, we handle the right hand side.
+  template <int dim>
   class RightHandSide : public Function<dim>
   {
   public:
@@ -211,6 +237,13 @@ namespace BlackScholesSolver
 
     return 0.0;
   }
+
+  template <int dim>
+  RightHandSide<dim>::RightHandSide(double asset_volatility, 
+                                    double interest_rate)
+    : asset_volatility(asset_volatility)
+    , interest_rate(interest_rate)
+  {}
 
   // @sect3{The <code>BlackScholes</code> Class}
 
@@ -297,36 +330,6 @@ namespace BlackScholesSolver
 
     ConvergenceTable convergence_table;
   };
-
-
-  // Next, we initialize our right hand side and boundary values.
-  template <int dim>
-  InitialConditions<dim>::InitialConditions(double s_price)
-    : s_price(s_price)
-  {}
-
-  template <int dim>
-  LeftBoundaryValues<dim>::LeftBoundaryValues()
-  {}
-
-  template <int dim>
-  RightBoundaryValues<dim>::RightBoundaryValues(double s_price, 
-                                                double interest_rate)
-    : s_price(s_price)
-    , interest_rate(interest_rate)
-  {}
-
-  template <int dim>
-  RightHandSide<dim>::RightHandSide(double asset_volatility, 
-                                    double interest_rate)
-    : asset_volatility(asset_volatility)
-    , interest_rate(interest_rate)
-  {}
-
-  template <int dim>
-  Solution<dim>::Solution(double maturity_time)
-    : maturity_time(maturity_time)
-  {}
 
   // @sect3{The <code>BlackScholes</code> Implementation}
 
