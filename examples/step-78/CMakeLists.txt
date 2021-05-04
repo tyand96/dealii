@@ -1,5 +1,5 @@
 ##
-#  CMake script for the step-6 tutorial program:
+#  CMake script for the step-78 tutorial program:
 ##
 
 # Set the name of the project and target:

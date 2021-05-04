@@ -1,61 +1,73 @@
+/* ---------------------------------------------------------------------
+ *
+ * Copyright (C) 2000 - 2021 by the deal.II authors
+ *
+ * This file is part of the deal.II library.
+ *
+ * The deal.II library is free software; you can use it, redistribute
+ * it, and/or modify it under the terms of the GNU Lesser General
+ * Public License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * The full text of the license can be found in the file LICENSE.md at
+ * the top level directory of deal.II.
+ *
+ * ---------------------------------------------------------------------
+
+ *
+ * Author: Tyler Anderson, Colorado State University, 2021
+ */
+
+
 // @sect3{Include files}
+
 // The program starts with the usual include files, all of which you should have
 // seen before by now:
-#include <deal.II/base/utilities.h>
-#include <deal.II/base/quadrature_lib.h>
+#include <deal.II/base/convergence_table.h>
 #include <deal.II/base/function.h>
 #include <deal.II/base/logstream.h>
-#include <deal.II/lac/vector.h>
-#include <deal.II/lac/full_matrix.h>
-#include <deal.II/lac/dynamic_sparsity_pattern.h>
-#include <deal.II/lac/sparse_matrix.h>
-#include <deal.II/lac/solver_cg.h>
-#include <deal.II/lac/precondition.h>
-#include <deal.II/lac/affine_constraints.h>
-#include <deal.II/grid/tria.h>
-#include <deal.II/grid/grid_generator.h>
-#include <deal.II/grid/grid_refinement.h>
-#include <deal.II/grid/grid_out.h>
-#include <deal.II/grid/tria_accessor.h>
-#include <deal.II/grid/tria_iterator.h>
+#include <deal.II/base/quadrature_lib.h>
+#include <deal.II/base/utilities.h>
 #include <deal.II/dofs/dof_handler.h>
 #include <deal.II/dofs/dof_accessor.h>
 #include <deal.II/dofs/dof_tools.h>
 #include <deal.II/fe/fe_q.h>
 #include <deal.II/fe/fe_values.h>
+#include <deal.II/grid/grid_generator.h>
+#include <deal.II/grid/grid_refinement.h>
+#include <deal.II/grid/grid_out.h>
+#include <deal.II/grid/tria.h>
+#include <deal.II/grid/tria_accessor.h>
+#include <deal.II/grid/tria_iterator.h>
+#include <deal.II/lac/affine_constraints.h>
+#include <deal.II/lac/dynamic_sparsity_pattern.h>
+#include <deal.II/lac/full_matrix.h>
+#include <deal.II/lac/precondition.h>
+#include <deal.II/lac/sparse_matrix.h>
+#include <deal.II/lac/solver_cg.h>
+#include <deal.II/lac/vector.h>
 #include <deal.II/numerics/data_out.h>
-#include <deal.II/numerics/vector_tools.h>
-#include <deal.II/numerics/error_estimator.h>
-#include <deal.II/numerics/solution_transfer.h>
-#include <deal.II/numerics/matrix_tools.h>
 #include <deal.II/numerics/data_out_stack.h>
-#include <deal.II/base/convergence_table.h>
+#include <deal.II/numerics/error_estimator.h>
+#include <deal.II/numerics/matrix_tools.h>
+#include <deal.II/numerics/solution_transfer.h>
+#include <deal.II/numerics/vector_tools.h>
 
 #include <fstream>
 #include <iostream>
 
 // Then the usual placing of all content of this program into a namespace and
-// the importation of the deal.II namespace into the one we will work in:
+// the importation of the deal.II namespace into the one we will work in. We 
+// also define an identifier to allow for the MMS code to be run when 
+// <code>MMS</code> is defined. Otherwise, the program solves the original
+// problem:
 namespace BlackScholesSolver
 {
   using namespace dealii;
 
-  //@sect3{Helper Functions}
-  // Here we define 2 helper functions for calculating coefficients in the
-  // modified laplace matrices A and B defined in the introduction.
-  template <int dim>
-  double coefficient(const Point<dim> &p)
-  {
-    return p.square();
-  }
-
-  template <int dim>
-  Tensor<1, dim> SCoefficient(const Point<dim> &p)
-  {
-    return Tensor<1, dim>(p);
-  }
+  #define MMS
 
   // @sect3{Solution Class}
+
   // This section creates a class for the known solution when testing using the
   // MMS. Here I am using $v(\tau,S) = -\tau^2 -S^2 + 6$ for my solution. We
   // need to include the solution equation and the gradient for the H1 seminorm
@@ -81,30 +93,140 @@ namespace BlackScholesSolver
   double Solution<dim>::value(const Point<dim> & p,
                               const unsigned int component) const
   {
-    return -std::pow(p(component), 2) - std::pow(this->get_time(), 2) + 6;
+    return -Utilities::fixed_power<2,double>(p(component)) - 
+           Utilities::fixed_power<2,double>(this->get_time()) + 6;
   }
 
   template <int dim>
   Tensor<1, dim> Solution<dim>::gradient(const Point<dim> & p,
                                          const unsigned int component) const
   {
-    return Point<1>(-2 * p(component));
+    return Point<dim>(-2 * p(component));
+  }
+
+  // @sect3{Equation Data}
+
+  // In the following classes and functions, we implement the various pieces of
+  // data that define this problem (right hand side and boundary values) that
+  // are used in this program and for which we need function objects. The right
+  // hand side is chosen as discussed at the end of the introduction.
+  template <int dim>
+  class InitialConditions : public Function<dim>
+  {
+  public:
+    InitialConditions(double s_price);
+    double         s_price;
+    virtual double value(const Point<dim> & p,
+                         const unsigned int component = 0) const override;
+  };
+
+  template <int dim>
+  double InitialConditions<dim>::value(const Point<dim> & p,
+                                       const unsigned int component) const
+  {
+    (void)component;
+    #ifdef MMS
+      return -Utilities::fixed_power<2,double>(p(component)) + 6;
+    #endif
+
+    return std::max(p(component) - s_price, 0.);
+    
+  }
+
+  template <int dim>
+  class LeftBoundaryValues : public Function<dim>
+  {
+  public:
+    LeftBoundaryValues();
+    virtual double value(const Point<dim> & p,
+                         const unsigned int component = 0) const override;
+  };
+
+  template <int dim>
+  double LeftBoundaryValues<dim>::value(const Point<dim> & p,
+                                        const unsigned int component) const
+  {
+    (void)component;
+    (void)p;
+    #ifdef MMS
+      return -Utilities::fixed_power<2,double>(this->get_time()) + 6;
+    #endif
+
+    return 0.0;
+  }
+
+  template <int dim>
+  class RightBoundaryValues : public Function<dim>
+  {
+  public:
+    RightBoundaryValues(double s_price, double interest_rate);
+    virtual double value(const Point<dim> & p,
+                         const unsigned int component = 0) const override;
+
+  private:
+    double s_price;
+    double interest_rate;
+  };
+
+
+  template <int dim>
+  double RightBoundaryValues<dim>::value(const Point<dim> & p,
+                                         const unsigned int component) const
+  {
+    (void)component;
+    #ifdef MMS
+    return -Utilities::fixed_power<2,double>(p(component)) - 
+           Utilities::fixed_power<2,double>(this->get_time()) + 6;
+    #endif
+    
+    return (p(component) - s_price) * exp((-interest_rate) * 
+           (this->get_time()));
+  }
+
+  template <int dim>
+  class RightHandSide : public Function<dim>
+  {
+  public:
+    RightHandSide(double asset_volatility, double interest_rate);
+    virtual double value(const Point<dim> & p,
+                         const unsigned int component = 0) const override;
+
+  private:
+    double asset_volatility;
+    double interest_rate;
+  };
+
+  template <int dim>
+  double RightHandSide<dim>::value(const Point<dim> & p,
+                                   const unsigned int component) const
+  {
+    (void)component;
+    #ifdef MMS
+    return 2 * (this->get_time()) - 
+           Utilities::fixed_power<2,double>(asset_volatility * p(component)) -
+           2 * interest_rate * Utilities::fixed_power<2,double>(p(component)) -
+           interest_rate * (-Utilities::fixed_power<2,double>(p(component)) - 
+           Utilities::fixed_power<2,double>(this->get_time()) + 6);
+    #endif
+
+    return 0.0;
   }
 
   // @sect3{The <code>BlackScholes</code> Class}
+
   // The next piece is the declaration of the main class of this program. This
   // is very similar to the Step-26 tutorial, with some modifications. New
   // matrices had to be added to calculate the A and B matrices, as well as the
   // $V_{diff}$ vector mentioned in the introduction. We also define the
   // parameters used in the problem.
 
-  // <code>s_max</code>: The imposed upper bound on the spatial domain. This
-  // is the maximum allowed stock price.\n
-  // <code>maturity_time</code>: The upper bound on the time domain. This is
+  // - <code>maximum_stock_price</code>: The imposed upper bound on the spatial 
+  // domain. This is the maximum allowed stock price.
+  // - <code>maturity_time</code>: The upper bound on the time domain. This is
   // when the option expires.\n
-  // <code>sigma</code>: The volatility of the stock price.\n
-  // <code>r</code>: The risk free interest rate.\n
-  // <code>strike_price</code>: The aggreed upon price that the buyer will
+  // - <code>asset_volatility</code>: The volatility of the stock price.\n
+  // - <code>interest_rate</code>: The risk free interest rate.\n
+  // - <code>strike_price</code>: The aggreed upon price that the buyer will
   // have the option of purchasing  the stocks at the expiration time.
 
   // Some slight differences between this program and step-26 are the creation
@@ -131,18 +253,19 @@ namespace BlackScholesSolver
 
     void run();
 
-    const double s_max;
+    const double maximum_stock_price;
     const double maturity_time;
-    const double sigma;
-    const double r;
+    const double asset_volatility;
+    const double interest_rate;
     const double strike_price;
 
   private:
     void setup_system();
     void solve_time_step();
     void refine_grid();
-    void process_solution(const unsigned int cycle);
-    void output_results();
+    void process_solution();
+    void add_results_for_output();
+    void write_convergence_table();
 
     Triangulation<dim> triangulation;
     FE_Q<dim>          fe;
@@ -175,109 +298,6 @@ namespace BlackScholesSolver
     ConvergenceTable convergence_table;
   };
 
-  // @sect3{Equation Data}
-  // In the following classes and functions, we implement the various pieces of
-  // data that define this problem (right hand side and boundary values) that
-  // are used in this program and for which we need function objects. The right
-  // hand side is chosen as discussed at the end of the introduction.
-
-  template <int dim>
-  class InitialConditions : public Function<dim>
-  {
-  public:
-    InitialConditions(double s_price);
-    double         s_price;
-    virtual double value(const Point<dim> & p,
-                         const unsigned int component = 0) const override;
-  };
-
-  template <int dim>
-  double InitialConditions<dim>::value(const Point<dim> & p,
-                                       const unsigned int component) const
-  {
-    (void)component;
-    return -std::pow(p(component), 2) + 6;
-    /*
-     * Below is the original initial condition
-     * return std::max(p(component) - s_price, 0.);
-     */
-  }
-
-  template <int dim>
-  class LeftBoundaryValues : public Function<dim>
-  {
-  public:
-    LeftBoundaryValues();
-    virtual double value(const Point<dim> & p,
-                         const unsigned int component = 0) const override;
-  };
-
-  template <int dim>
-  double LeftBoundaryValues<dim>::value(const Point<dim> & p,
-                                        const unsigned int component) const
-  {
-    (void)component;
-    (void)p;
-    return -std::pow(this->get_time(), 2) + 6;
-    /*
-     * Below is the original left boundary condition
-     * return 0.0;
-     */
-  }
-
-  template <int dim>
-  class RightBoundaryValues : public Function<dim>
-  {
-  public:
-    RightBoundaryValues(double s_price, double r);
-    virtual double value(const Point<dim> & p,
-                         const unsigned int component = 0) const override;
-
-  private:
-    double s_price;
-    double r;
-  };
-
-
-  template <int dim>
-  double RightBoundaryValues<dim>::value(const Point<dim> & p,
-                                         const unsigned int component) const
-  {
-    (void)component;
-    return -std::pow(p(component), 2) - std::pow(this->get_time(), 2) + 6;
-    /*
-     * Below is the original right boundary condition
-     * return (p(component) - _s_price) * exp((-_r) * (this->get_time()));
-     */
-  }
-
-  template <int dim>
-  class RightHandSide : public Function<dim>
-  {
-  public:
-    RightHandSide(double sigma, double r);
-    virtual double value(const Point<dim> & p,
-                         const unsigned int component = 0) const override;
-
-  private:
-    double sigma;
-    double r;
-  };
-
-  template <int dim>
-  double RightHandSide<dim>::value(const Point<dim> & p,
-                                   const unsigned int component) const
-  {
-    (void)component;
-    return 2 * (this->get_time()) - std::pow(sigma * p(component), 2) -
-           2 * r * std::pow(p(component), 2) -
-           r * (-std::pow(p(component), 2) - std::pow(this->get_time(), 2) + 6);
-    /*
-     * Below is the original right hand side
-     * return 0.0
-     */
-  }
-
 
   // Next, we initialize our right hand side and boundary values.
   template <int dim>
@@ -290,15 +310,17 @@ namespace BlackScholesSolver
   {}
 
   template <int dim>
-  RightBoundaryValues<dim>::RightBoundaryValues(double s_price, double r)
+  RightBoundaryValues<dim>::RightBoundaryValues(double s_price, 
+                                                double interest_rate)
     : s_price(s_price)
-    , r(r)
+    , interest_rate(interest_rate)
   {}
 
   template <int dim>
-  RightHandSide<dim>::RightHandSide(double sigma, double r)
-    : sigma(sigma)
-    , r(r)
+  RightHandSide<dim>::RightHandSide(double asset_volatility, 
+                                    double interest_rate)
+    : asset_volatility(asset_volatility)
+    , interest_rate(interest_rate)
   {}
 
   template <int dim>
@@ -307,15 +329,16 @@ namespace BlackScholesSolver
   {}
 
   // @sect3{The <code>BlackScholes</code> Implementation}
+
   // Now, we get to the implementation of the main class. We will set the values
   // for the various parameters used in the problem. These were chosen because
   // they are fairly normal values for these parameters.
   template <int dim>
   BlackScholes<dim>::BlackScholes()
-    : s_max(1.)
+    : maximum_stock_price(1.)
     , maturity_time(1.)
-    , sigma(.2)
-    , r(0.05)
+    , asset_volatility(.2)
+    , interest_rate(0.05)
     , strike_price(0.5)
     , fe(1)
     , dof_handler(triangulation)
@@ -323,9 +346,12 @@ namespace BlackScholesSolver
     , timestep_number(0)
     , theta(0.5)
     , n_cycles(3)
-  {}
+  {
+    Assert(dim == 1, ExcNotImplemented());
+  }
 
   // @sect4{<code>BlackScholes::setup_system</code>}
+
   // The next function is the one that sets up the DoFHandler object, computes
   // the constraints, and sets the linear algebra objects to their correct
   // sizes. We also compute the mass matrix here by calling a function from the
@@ -334,21 +360,12 @@ namespace BlackScholesSolver
 
   // Note, that the time step is initialized here because the maturity time was
   // needed to compute the time step.
-
   template <int dim>
   void BlackScholes<dim>::setup_system()
   {
     dof_handler.distribute_dofs(fe);
 
     time_step = maturity_time / 5000.;
-
-    std::cout << std::endl
-              << "===========================================" << std::endl
-              << "Number of active cells: " << triangulation.n_active_cells()
-              << std::endl
-              << "Number of degrees of freedom: " << dof_handler.n_dofs()
-              << std::endl
-              << std::endl;
 
     constraints.clear();
     DoFTools::make_hanging_node_constraints(dof_handler, constraints);
@@ -370,11 +387,10 @@ namespace BlackScholesSolver
                                       QGauss<dim>(fe.degree + 1),
                                       mass_matrix);
 
-    // Below is the code to create the Laplace matrix with non constant
+    // Below is the code to create the Laplace matrix with non-constant
     // coefficients. This corresponds to the matrix D in the introduction. This
     // non-constant coefficient is represented in the
     // <code>current_coefficient</code> variable.
-
     const unsigned int dofs_per_cell = fe.dofs_per_cell;
     FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
     QGauss<dim>        quadrature_formula(fe.degree + 1);
@@ -390,7 +406,7 @@ namespace BlackScholesSolver
         for (const unsigned int q_index : fe_values.quadrature_point_indices())
           {
             const double current_coefficient =
-              coefficient(fe_values.quadrature_point(q_index));
+              fe_values.quadrature_point(q_index).square();
             for (const unsigned int i : fe_values.dof_indices())
               {
                 for (const unsigned int j : fe_values.dof_indices())
@@ -414,7 +430,6 @@ namespace BlackScholesSolver
     // Now we will create the A matrix. Below is the code to create the matrix A
     // as discussed in the introduction. The non constant coefficient is again
     // represented in  the <code>current_coefficient</code> variable.
-
     for (const auto &cell : dof_handler.active_cell_iterators())
       {
         cell_matrix = 0.;
@@ -422,7 +437,7 @@ namespace BlackScholesSolver
         for (const unsigned int q_index : fe_values.quadrature_point_indices())
           {
             const Tensor<1, dim> current_coefficient =
-              SCoefficient(fe_values.quadrature_point(q_index));
+              fe_values.quadrature_point(q_index);
             for (const unsigned int i : fe_values.dof_indices())
               {
                 for (const unsigned int j : fe_values.dof_indices())
@@ -448,7 +463,6 @@ namespace BlackScholesSolver
     // Finally we will create the matrix B. Below is the code to create the
     // matrix B as discussed in the introduction. The non constant coefficient
     // is again represented in the <code>current_coefficient</code> variable.
-
     for (const auto &cell : dof_handler.active_cell_iterators())
       {
         cell_matrix = 0.;
@@ -456,7 +470,7 @@ namespace BlackScholesSolver
         for (const unsigned int q_index : fe_values.quadrature_point_indices())
           {
             const Tensor<1, dim> current_coefficient =
-              SCoefficient(fe_values.quadrature_point(q_index));
+              fe_values.quadrature_point(q_index);
             for (const unsigned int i : fe_values.dof_indices())
               {
                 for (const unsigned int j : fe_values.dof_indices())
@@ -484,6 +498,7 @@ namespace BlackScholesSolver
   }
 
   // @sect4{<code>BlackScholes::solve_time_step</code>}
+
   // The next function is the one that solves the actual linear system for a
   // single time step. There is nothing surprising here:
   template <int dim>
@@ -499,14 +514,14 @@ namespace BlackScholesSolver
               << std::endl;
   }
 
-  // @sect4{<code>BlackScholes::output_results</code>}
+  // @sect4{<code>BlackScholes::add_results_for_output</code>}
+
   // This is simply the function to build the solution together. For this, we
   // create a new layer at each time, and then add the solution vector for that
   // timestep. The function then stitches this together with the old solutions
   // using 'build_patches'.
-
   template <int dim>
-  void BlackScholes<dim>::output_results()
+  void BlackScholes<dim>::add_results_for_output()
   {
     data_out_stack.new_parameter_value(time, time_step);
     data_out_stack.attach_dof_handler(dof_handler);
@@ -516,10 +531,10 @@ namespace BlackScholesSolver
   }
 
   // @sect4{<code>BlackScholes::refine_grid</code>}
+
   // This is somewhat unnecessary to have a function for the global refinement
   // that we do. The reason for the function, is to allow for the possibility of
   // an adaptive refinement later.
-
   template <int dim>
   void BlackScholes<dim>::refine_grid()
   {
@@ -527,11 +542,12 @@ namespace BlackScholesSolver
   }
 
   // @sect4{<code>BlackScholes::process_solution</code>}
+
   // This is where we calculate the convergence and error data to evaluate the
   // effectiveness of the program. Here, we calculate the $L^2$, $H^1$ and
   // $L^{\infty}$ norms.
   template <int dim>
-  void BlackScholes<dim>::process_solution(const unsigned int cycle)
+  void BlackScholes<dim>::process_solution()
   {
     Solution<dim> sol(maturity_time);
     sol.set_time(time);
@@ -556,7 +572,7 @@ namespace BlackScholesSolver
       VectorTools::compute_global_error(triangulation,
                                         difference_per_cell,
                                         VectorTools::H1_seminorm);
-    const QTrapezoid<1>  q_trapez;
+    const QTrapez<1>  q_trapez;
     const QIterated<dim> q_iterated(q_trapez, fe.degree * 2 + 1);
     VectorTools::integrate_difference(dof_handler,
                                       solution,
@@ -570,10 +586,6 @@ namespace BlackScholesSolver
                                         VectorTools::Linfty_norm);
     const unsigned int n_active_cells = triangulation.n_active_cells();
     const unsigned int n_dofs         = dof_handler.n_dofs();
-    std::cout << "Cycle " << cycle << ':' << std::endl
-              << "   Number of active cells:       " << n_active_cells
-              << std::endl
-              << "   Number of degrees of freedom: " << n_dofs << std::endl;
     convergence_table.add_value("cells", n_active_cells);
     convergence_table.add_value("dofs", n_dofs);
     convergence_table.add_value("L2", L2_error);
@@ -581,177 +593,18 @@ namespace BlackScholesSolver
     convergence_table.add_value("Linfty", Linfty_error);
   }
 
-  // @sect4{<code>BlackScholes::run</code>}
-  // Now we get to the main driver of the program. This is where we do all the
-  // work of looping through the timesteps and calculating the solution vector
-  // each time. Here at the top, we set the initial refinement value and then
-  // create a mesh. Then we refine this mesh once. Next, we set up the
-  // data_out_stack object to store our solution. Finally, we start a for loop
-  // to loop through the cycles. This lets us recalculate a solution for each
-  // successive mesh refinement. At the beginning of each iteration, we need to
-  // reset the time and time step number. We introduce an if statement to
-  // accomplish this because we don't want to do this on the first iteration.
+  //@sect4{<code>BlackScholes::write_convergence_table</code> }
 
+  // This next part is building the convergence and error tables. By this, we
+  // need to set the settings for how to output the data that was calculated
+  // during <code>BlackScholes::process_solution</code>. First, we will create
+  // the headings and set up the cells properly. During this, we will also
+  // prescribe the precision of our results. Then we will write the calculated
+  // errors based on the L2, H1, and Linfinity norms to the console and to
+  // the error LaTex file.
   template <int dim>
-  void BlackScholes<dim>::run()
+  void BlackScholes<dim>::write_convergence_table()
   {
-    const unsigned int initial_global_refinement = 0; // 5 8
-
-    GridGenerator::hyper_cube(triangulation, 0.0, s_max, true);
-    triangulation.refine_global(initial_global_refinement);
-
-
-    solution_names.emplace_back("u");
-    data_out_stack.declare_data_vector(solution_names,
-                                       DataOutStack<dim>::dof_vector);
-
-    Vector<double> tmp;
-    Vector<double> forcing_terms;
-
-    for (unsigned int cycle = 0; cycle < n_cycles; cycle++)
-      {
-        if (cycle != 0)
-          {
-            refine_grid();
-            time            = 0.0;
-            timestep_number = 0;
-          }
-        setup_system();
-        tmp.reinit(solution.size());
-        forcing_terms.reinit(solution.size());
-
-        VectorTools::interpolate(dof_handler,
-                                 InitialConditions<dim>(strike_price),
-                                 old_solution);
-
-        solution = old_solution;
-        if (cycle == (n_cycles - 1))
-          {
-            output_results();
-          }
-
-
-        // Next, we run the main loop which runs until we exceed the maturity
-        // time. We first compute the right hand side of the equation, which is
-        // described in the introduction. Recall that it contains the term
-        // $\left[-\frac{1}{4}k_n\sigma^2\bold{D}-k_nr\bold{M}+k_n\sigma^2
-        // \bold{B}-k_nr\bold{A}+\bold{M}\right]V^{n-1}$. We put these terms
-        // into the variable system_rhs, with the help of a temporary vector:
-
-        while (time < maturity_time)
-          {
-            time += time_step;
-            ++timestep_number;
-            std::cout << "Time step " << timestep_number << " at t=" << time
-                      << std::endl;
-
-            mass_matrix.vmult(system_rhs, old_solution);
-
-            laplace_matrix.vmult(tmp, old_solution);
-            system_rhs.add((-1) * (1 - theta) * time_step * pow(sigma, 2) * 0.5,
-                           tmp);
-            mass_matrix.vmult(tmp, old_solution);
-
-            system_rhs.add((-1) * (1 - theta) * time_step * r * 2, tmp);
-
-            a_matrix.vmult(tmp, old_solution);
-            system_rhs.add((-1) * time_step * r, tmp);
-
-            b_matrix.vmult(tmp, old_solution);
-            system_rhs.add((-1) * pow(sigma, 2) * time_step * 1, tmp);
-
-            // The second piece is to compute the contributions of the source
-            // terms. This corresponds to the term $-k_n\left[\frac{1}{2}F^{n-1}
-            // +\frac{1}{2}F^n\right]$. The following code calls
-            // VectorTools::create_right_hand_side to compute the vectors $F$,
-            // where we set the time of the right hand side (source) function
-            // before we evaluate it. The result of this all ends up in the
-            // forcing_terms variable:
-
-            RightHandSide<dim> rhs_function(sigma, r);
-            rhs_function.set_time(time);
-            VectorTools::create_right_hand_side(dof_handler,
-                                                QGauss<dim>(fe.degree + 1),
-                                                rhs_function,
-                                                tmp);
-            forcing_terms = tmp;
-            forcing_terms *= time_step * theta;
-            rhs_function.set_time(time - time_step);
-            VectorTools::create_right_hand_side(dof_handler,
-                                                QGauss<dim>(fe.degree + 1),
-                                                rhs_function,
-                                                tmp);
-            forcing_terms.add(time_step * (1 - theta), tmp);
-            system_rhs -= forcing_terms;
-
-            // Next, we add the forcing terms to the ones that come from the
-            // time stepping, and also build the matrix $\left[\bold{M}+
-            // \frac{1}{4}k_n\sigma^2\bold{D}+k_nr\bold{M}\right]$ that we have
-            // to invert in each time step. The final piece of these operations
-            // is to eliminate hanging node constrained degrees of freedom from
-            // the linear system:
-
-            system_matrix.copy_from(mass_matrix);
-            system_matrix.add((theta)*time_step * pow(sigma, 2) * 0.5,
-                              laplace_matrix);
-            system_matrix.add((time_step)*r * theta * (1 + 1), mass_matrix);
-
-            constraints.condense(system_matrix, system_rhs);
-
-            // There is one more operation we need to do before we can solve it:
-            // boundary values. To this end, we create a boundary value object,
-            // set the proper time to the one of the current time step, and
-            // evaluate it as we have done many times before. The result is used
-            //  to also set the correct boundary values in the linear system:
-
-            {
-              RightBoundaryValues<dim> right_boundary_function(strike_price, r);
-              LeftBoundaryValues<dim>  left_boundary_function;
-              right_boundary_function.set_time(time);
-              left_boundary_function.set_time(time);
-              std::map<types::global_dof_index, double> boundary_values;
-              VectorTools::interpolate_boundary_values(dof_handler,
-                                                       0,
-                                                       left_boundary_function,
-                                                       boundary_values);
-              VectorTools::interpolate_boundary_values(dof_handler,
-                                                       1,
-                                                       right_boundary_function,
-                                                       boundary_values);
-              MatrixTools::apply_boundary_values(boundary_values,
-                                                 system_matrix,
-                                                 solution,
-                                                 system_rhs);
-            }
-
-            // With this out of the way, all we have to do is solve the system,
-            // generate graphical data on the last cycle, and create the
-            // convergence table data.
-
-            solve_time_step();
-
-            if (cycle == (n_cycles - 1))
-              {
-                output_results();
-              }
-            old_solution = solution;
-          }
-
-        process_solution(cycle);
-      }
-
-    const std::string filename = "solution.vtk";
-    std::ofstream     output(filename);
-    data_out_stack.write_vtk(output);
-
-    // This next part is building the convergence and error tables. By this, we
-    // need to set the settings for how to output the data that was calculated
-    // during <code>BlackScholes::process_solution</code>. First, we will create
-    // the headings and set up the cells properly. During this, we will also
-    // prescribe the precision of our results. Then we will write the calculated
-    // errors based on the L2, H1, and Linfinity norms to the console and to
-    // the error LaTex file.
-
     convergence_table.set_precision("L2", 3);
     convergence_table.set_precision("H1", 3);
     convergence_table.set_precision("Linfty", 3);
@@ -773,9 +626,8 @@ namespace BlackScholesSolver
     std::ofstream error_table_file(error_filename);
     convergence_table.write_tex(error_table_file);
 
-    // Next, we will make the convergence table. We will again write this to the
-    // console and to the convergence LaTex file.
-
+    // Next, we will make the convergence table. We will again write this to 
+    // the console and to the convergence LaTex file.
     convergence_table.add_column_to_supercolumn("cells", "n cells");
     std::vector<std::string> new_order;
     new_order.emplace_back("n cells");
@@ -810,12 +662,192 @@ namespace BlackScholesSolver
     convergence_table.write_tex(table_file);
   }
 
+  // @sect4{<code>BlackScholes::run</code>}
+
+  // Now we get to the main driver of the program. This is where we do all the
+  // work of looping through the time steps and calculating the solution vector
+  // each time. Here at the top, we set the initial refinement value and then
+  // create a mesh. Then we refine this mesh once. Next, we set up the
+  // data_out_stack object to store our solution. Finally, we start a for loop
+  // to loop through the cycles. This lets us recalculate a solution for each
+  // successive mesh refinement. At the beginning of each iteration, we need to
+  // reset the time and time step number. We introduce an if statement to
+  // accomplish this because we don't want to do this on the first iteration.
+  template <int dim>
+  void BlackScholes<dim>::run()
+  {
+    const unsigned int initial_global_refinement = 0; // 5 8
+
+    GridGenerator::hyper_cube(triangulation, 0.0, maximum_stock_price, true);
+    triangulation.refine_global(initial_global_refinement);
+
+
+    solution_names.emplace_back("u");
+    data_out_stack.declare_data_vector(solution_names,
+                                       DataOutStack<dim>::dof_vector);
+
+    Vector<double> vmult_result;
+    Vector<double> forcing_terms;
+
+    for (unsigned int cycle = 0; cycle < n_cycles; cycle++)
+      {
+        if (cycle != 0)
+          {
+            refine_grid();
+            time            = 0.0;
+            timestep_number = 0;
+          }
+        setup_system();
+        std::cout << std::endl
+          << "===========================================" << std::endl
+          << "Cycle " << cycle << ':' << std::endl
+          << "Number of active cells: " << triangulation.n_active_cells()
+          << std::endl
+          << "Number of degrees of freedom: " << dof_handler.n_dofs()
+          << std::endl
+          << std::endl;
+        vmult_result.reinit(solution.size());
+        forcing_terms.reinit(solution.size());
+
+        VectorTools::interpolate(dof_handler,
+                                 InitialConditions<dim>(strike_price),
+                                 old_solution);
+
+        solution = old_solution;
+        if (cycle == (n_cycles - 1))
+          {
+            add_results_for_output();
+          }
+
+
+        // Next, we run the main loop which runs until we exceed the maturity
+        // time. We first compute the right hand side of the equation, which is
+        // described in the introduction. Recall that it contains the term
+        // $\left[-\frac{1}{4}k_n\sigma^2\bold{D}-k_nr\bold{M}+k_n\sigma^2
+        // \bold{B}-k_nr\bold{A}+\bold{M}\right]V^{n-1}$. We put these terms
+        // into the variable system_rhs, with the help of a temporary vector:
+        while (time < maturity_time)
+          {
+            time += time_step;
+            ++timestep_number;
+            std::cout << "Time step " << timestep_number << " at t=" << time
+                      << std::endl;
+
+            mass_matrix.vmult(system_rhs, old_solution);
+
+            laplace_matrix.vmult(vmult_result, old_solution);
+            system_rhs.add((-1) * (1 - theta) * time_step * 
+                           Utilities::fixed_power<2, double>(asset_volatility) *
+                           0.5, vmult_result);
+            mass_matrix.vmult(vmult_result, old_solution);
+
+            system_rhs.add((-1) * (1 - theta) * time_step * interest_rate * 2, 
+                           vmult_result);
+
+            a_matrix.vmult(vmult_result, old_solution);
+            system_rhs.add((-1) * time_step * interest_rate, vmult_result);
+
+            b_matrix.vmult(vmult_result, old_solution);
+            system_rhs.add((-1) * 
+                           Utilities::fixed_power<2, double>(asset_volatility) *
+                           time_step * 1, vmult_result);
+
+            // The second piece is to compute the contributions of the source
+            // terms. This corresponds to the term $-k_n\left[\frac{1}{2}F^{n-1}
+            // +\frac{1}{2}F^n\right]$. The following code calls
+            // VectorTools::create_right_hand_side to compute the vectors $F$,
+            // where we set the time of the right hand side (source) function
+            // before we evaluate it. The result of this all ends up in the
+            // forcing_terms variable:
+            RightHandSide<dim> rhs_function(asset_volatility, interest_rate);
+            rhs_function.set_time(time);
+            VectorTools::create_right_hand_side(dof_handler,
+                                                QGauss<dim>(fe.degree + 1),
+                                                rhs_function,
+                                                forcing_terms);
+            forcing_terms *= time_step * theta;
+            system_rhs -= forcing_terms;
+
+            rhs_function.set_time(time - time_step);
+            VectorTools::create_right_hand_side(dof_handler,
+                                                QGauss<dim>(fe.degree + 1),
+                                                rhs_function,
+                                                forcing_terms);
+            forcing_terms *= time_step * (1 - theta);
+            system_rhs -= forcing_terms;
+
+            // Next, we add the forcing terms to the ones that come from the
+            // time stepping, and also build the matrix $\left[\bold{M}+
+            // \frac{1}{4}k_n\sigma^2\bold{D}+k_nr\bold{M}\right]$ that we have
+            // to invert in each time step. The final piece of these operations
+            // is to eliminate hanging node constrained degrees of freedom from
+            // the linear system:
+            system_matrix.copy_from(mass_matrix);
+            system_matrix.add((theta)*time_step * 
+                        Utilities::fixed_power<2, double>(asset_volatility) *
+                         0.5, laplace_matrix);
+            system_matrix.add((time_step)*interest_rate * theta * (1 + 1), 
+                        mass_matrix);
+
+            constraints.condense(system_matrix, system_rhs);
+
+            // There is one more operation we need to do before we can solve it:
+            // boundary values. To this end, we create a boundary value object,
+            // set the proper time to the one of the current time step, and
+            // evaluate it as we have done many times before. The result is used
+            //  to also set the correct boundary values in the linear system:
+            {
+              RightBoundaryValues<dim> right_boundary_function(strike_price, 
+                                                               interest_rate);
+              LeftBoundaryValues<dim>  left_boundary_function;
+              right_boundary_function.set_time(time);
+              left_boundary_function.set_time(time);
+              std::map<types::global_dof_index, double> boundary_values;
+              VectorTools::interpolate_boundary_values(dof_handler,
+                                                       0,
+                                                       left_boundary_function,
+                                                       boundary_values);
+              VectorTools::interpolate_boundary_values(dof_handler,
+                                                       1,
+                                                       right_boundary_function,
+                                                       boundary_values);
+              MatrixTools::apply_boundary_values(boundary_values,
+                                                 system_matrix,
+                                                 solution,
+                                                 system_rhs);
+            }
+
+            // With this out of the way, all we have to do is solve the system,
+            // generate graphical data on the last cycle, and create the
+            // convergence table data.
+            solve_time_step();
+
+            if (cycle == (n_cycles - 1))
+              {
+                add_results_for_output();
+              }
+            old_solution = solution;
+          }
+        #ifdef MMS
+          process_solution();
+        #endif
+      }
+
+    const std::string filename = "solution.vtk";
+    std::ofstream     output(filename);
+    data_out_stack.write_vtk(output);
+
+    #ifdef MMS
+      write_convergence_table();
+    #endif
+  }
+
 } // namespace BlackScholesSolver
 
 // @sect3{The <code>main</code> Function}
+
 // Having made it this far, there is, again, nothing much to discuss for the
 // main function of this program: it looks like all such functions since step-6.
-
 int main()
 {
   try

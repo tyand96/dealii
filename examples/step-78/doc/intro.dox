@@ -44,9 +44,11 @@ where
 @f}
 
 The way we should interpret this equation is that it is a time-dependent partial
-differential equation of one "space" variable where that spatial variable is
-$S$, the price of the stock, and $V(S,t)$ is the price of the option at time $t$
- if the stock price at that time were $S$.
+differential equation of one "space" variable
+$S$ as the price of the stock, and $V(S,t)$ is the price of the option at time 
+$t$ if the stock price at that time were $S$.
+
+<h3>Particularities of the equation system</h3>
 
 There are a number of oddities in this equation that are worth discussing before
 moving on to its numerical solution. First, the "spatial" domain
@@ -64,8 +66,8 @@ In practice, for us to use a finite element method to solve this, we are going
 to need to bound $\Omega$. Since this equation describes prices, and it doesn't
 make sense to talk about prices being negative, we will set the lower bound of
 $\Omega$ to be 0. Then, for an upper bound, we will choose a very large number,
-one that $S$ is not very likely to ever get to. We will call this $\smax$. So,
-$\Omega=[0,\smax]$
+one that $S$ is not very likely to ever get to. We will call this $S_\text{max}$
+. So, $\Omega=[0,S_\text{max}]$.
 
 Second, after truncating the domain, we need to ask what boundary values we
 should pose at this now finite boundary. To take care of this, we use "put-call"
@@ -81,7 +83,7 @@ this says
     V(S,t) \rightarrow S-Ke^{-r(T-t)},
 @f}
 and we can use this as a reasonable boundary condition at our finite point
-$\smax$
+$S_\text{max}$.
 
 The second complication of the Block-Scholes equation is that we are given a
 final condition, and not an initial condition. This is because we know what the
@@ -95,7 +97,7 @@ values for $V$ at the *end time* but not the initial time -- in fact, finding
 out what a fair price at the current time (conventionally taken to be $t=0$) is
 what solving these equations is all about.
 
-What this means that this is not an equation that is posed going forward in
+This means that this is not an equation that is posed going forward in
 time, but in fact going *backward* in time. Thus it makes sense to solve this
 problem in reverse by making the change of variables $\tau=T-t$ where now $\tau$
 denotes "time before the strike time $T$".
@@ -126,6 +128,8 @@ refinement and time step choice. There is also the issue that the diffusion term
  is written in a non-conservative form and so integration by parts is not
  immediately obvious.
 
+<h3>Scheme for the numerical solution</h3>
+
 We will solve this problem using the fractional step method (of which the
 Crank-Nicolson method is a special case with $\theta=\frac 12$; the explicit
 Euler method corresponds to $\theta=0$ and the implicit Euler method to
@@ -147,13 +151,14 @@ this process will be explained in detail.
 
 So, we begin by multiplying by test functions, $\{\phi_i(S)\}_{i\in\mathbb{N}}$:
 @f{align*}{
-    0=&-\int_0^{\smax}\phi_i(S)\left[V^n(S)-V^{n-1}(S)\right]dS \\
-    &+k_n\int_0^{\smax}\phi_i(S)\left[\frac{\sigma^2S^2}{2} \
+    0=&-\int_0^{S_\text{max}}\phi_i(S)\left[V^n(S)-V^{n-1}(S)\right]dS \\
+    &+k_n\int_0^{S_\text{max}}\phi_i(S)\left[\frac{\sigma^2S^2}{2} \
     \left[(1-\theta)\frac{d^2V^{n-1}(S)}{dS^2} + \
      \theta \frac{d^2V^{n}(S)}{dS^2}\right]\right]dS \\
-    &+k_n\int_0^{\smax}\phi_i(S)\left[rS\left[(1-\theta)\frac{dV^{n-1}(S)}{dS}\
+    &+k_n\int_0^{S_\text{max}}\phi_i(S)\left[rS\left[(1-\theta)
+     \frac{dV^{n-1}(S)}{dS}\
      + \theta\frac{dV^{n}(S)}{dS}\right]\right]dS  \\
-    &-k_n\int_0^{\smax}\phi_i(S)\left[r\left[(1-\theta)V^{n-1}(S)\
+    &-k_n\int_0^{S_\text{max}}\phi_i(S)\left[r\left[(1-\theta)V^{n-1}(S)\
      + \theta V^n(S)\right]\right]dS
 @f}
 
@@ -169,12 +174,12 @@ The interesting parts come from (2) and (3).
 
 For (2), we have:
 @f{align*}{
-    &k_n\int_0^{\smax}\phi_i(S)\left[\frac{\sigma^2S^2}{2} \
+    &k_n\int_0^{S_\text{max}}\phi_i(S)\left[\frac{\sigma^2S^2}{2} \
      \left[(1-\theta)\frac{d^2V^{n-1}(S)}{dS^2} + \
      \theta \frac{d^2V^{n}(S)}{dS^2}\right]\right]dS \\
-    &=k_n(1-\theta)\int_0^{\smax}\phi_i(S)\frac{\sigma^2S^2}{2} \
+    &=k_n(1-\theta)\int_0^{S_\text{max}}\phi_i(S)\frac{\sigma^2S^2}{2} \
      \frac{d^2V^{n-1}(S)}{dS^2} \
-    +k_n\theta\int_0^{\smax}\phi_i(S)\frac{\sigma^2S^2}{2} \
+    +k_n\theta\int_0^{S_\text{max}}\phi_i(S)\frac{\sigma^2S^2}{2} \
      \frac{d^2V^{n}(S)}{dS^2}
 @f}
 
@@ -184,19 +189,22 @@ and a different time step for V. Therefore, we will outline this integral in the
 general case, and account for the differences at the end. So, consider the
 general integral, which we will solve using integration by parts:
 @f{align*}{
-    &\int_{0}^{\smax} \phi_i(S)\frac{\sigma^2S^2}{2}\frac{d^2V^n(S)}{dS^2}dS \\
+    &\int_{0}^{S_\text{max}} \phi_i(S)\frac{\sigma^2S^2}{2}
+        \frac{d^2V^n(S)}{dS^2}dS \\
     &= \phi_i(S)\frac{1}{2}\sigma^2S^2\frac{dV^n(S)}{dS}\Bigg|_0^{S_{max}} - \
-    \int_0^{\smax} \phi_i(S)\sigma^2S\frac{dV^n(S)}{dS}dS - \
-    \int_0^{\smax} \frac{d\phi_i(S)}{dS}\frac{1}{2}\sigma^2S^2 \
+    \int_0^{S_\text{max}} \phi_i(S)\sigma^2S\frac{dV^n(S)}{dS}dS - \
+    \int_0^{S_\text{max}} \frac{d\phi_i(S)}{dS}\frac{1}{2}\sigma^2S^2 \
     \frac{dV^n(S)}{dS}dS \\
-    &= -\int_0^{\smax} \phi_i(S)\sigma^2S\frac{dV^n(S)}{dS}dS - \
-    \int_0^{\smax} \frac{d\phi_i(S)}{dS}\frac{1}{2}\sigma^2S^2 \
+    &= -\int_0^{S_\text{max}} \phi_i(S)\sigma^2S\frac{dV^n(S)}{dS}dS - \
+    \int_0^{S_\text{max}} \frac{d\phi_i(S)}{dS}\frac{1}{2}\sigma^2S^2 \
     \frac{dV^n(S)}{dS}dS \\
-    &= -\int_0^{\smax} \phi_i(S)\sigma^2S \sum_j V_j^n \frac{d\phi_j(S)}{dS}dS \
-    -\int_0^{\smax} \frac{d\phi_i(S)}{dS}\frac{1}{2} \
+    &= -\int_0^{S_\text{max}} \phi_i(S)\sigma^2S \sum_j V_j^n 
+        \frac{d\phi_j(S)}{dS}dS \
+    -\int_0^{S_\text{max}} \frac{d\phi_i(S)}{dS}\frac{1}{2} \
     \sigma^2S^2  \sum_k V_k^n \frac{d\phi_k(S)}{dS}dS \\
-    &= -\sum_j \sigma^2 \int_0^{\smax} \phi_i(S)S \frac{d\phi_j(S)}{dS}dS V_j^n\
-    - \sum_k \frac{1}{2}\sigma^2 \int_0^{\smax} \frac{d\phi_i(S)}{dS}S^2 \
+    &= -\sum_j \sigma^2 \int_0^{S_\text{max}} \phi_i(S)S 
+        \frac{d\phi_j(S)}{dS}dS V_j^n\
+    - \sum_k \frac{1}{2}\sigma^2 \int_0^{S_\text{max}} \frac{d\phi_i(S)}{dS}S^2\
     \frac{d\phi_k}{dS}dS V_k^n \\
     &= -\sum_j \sigma^2 \left(\phi_i(S)S, \frac{d\phi_j(S)}{dS}\right) V_j^n \
     - \sum_k \frac{1}{2}\sigma^2 \left(\frac{d\phi_i(S)}{dS}S^2,\
@@ -209,7 +217,8 @@ general integral, which we will solve using integration by parts:
 So, after adding in the constants and exchanging $V^n$ for $V^{n-1}$ where
 applicable, we arrive at the following for (2):
 @f{align*}{
-    &k_n\int_0^{\smax}\phi_i(S)\left[\frac{\sigma^2S^2}{2}\left[(1-\theta)\
+    &k_n\int_0^{S_\text{max}}\phi_i(S)\left[\frac{\sigma^2S^2}{2}
+        \left[(1-\theta)\
     \frac{d^2V^{n-1}(S)}{dS^2} + \
     \theta \frac{d^2V^{n}(S)}{dS^2}\right]\right]dS \\
     &= k_n\left[-(1-\theta)\sigma^2\bold{B}V^{n-1}\
@@ -218,8 +227,8 @@ applicable, we arrive at the following for (2):
 @f}
 But, because the matrix $\textbf{B}$ involves an advective term, we will choose
 $\theta=0$ there -- in other words, we use an explicit Euler method to treat
-advection. Conversely, since the matrix $\textbf{D}$ involves the diffusive term,
-we will choose $\theta=1/2$ there -- i.e., we treat diffusion using the second
+advection. Conversely, since the matrix $\textbf{D}$ involves the diffusive term
+, we will choose $\theta=1/2$ there -- i.e., we treat diffusion using the second
 order Crank-Nicolson method.
 
 So, we arrive at the following:
@@ -233,13 +242,14 @@ Now, to handle (3). For this, we will again proceed by considering the general
 case like above.
 
 @f{align*}{
-    &\int_{0}^{\smax} \phi_i(S)rS\frac{dV^n}{dS}dS \\
-    &= \phi_i(S)rSV^n\Bigg|_0^{\smax} - \int_0^{\smax} \left[r\phi_i(S) \
+    &\int_{0}^{S_\text{max}} \phi_i(S)rS\frac{dV^n}{dS}dS \\
+    &= \phi_i(S)rSV^n\Bigg|_0^{S_\text{max}} - \int_0^{S_\text{max}} 
+        \left[r\phi_i(S) \
     + r\frac{d\phi_i(S)}{dS}S \right]V^ndS \\
-    &= -\int_0^{\smax} r\phi_i(S)V^ndS - \
-    \int_0^{\smax} r\frac{d\phi_i(S)}{dS}SV^ndS \\
-    &= -\int_0^{\smax} r\phi_i(S) \sum_j V_j^n\phi_j(S)dS \
-    -\int_0^{\smax} rS\frac{d\phi_i(S)}{dS} \sum_k V_k\phi_k(S)dS \\
+    &= -\int_0^{S_\text{max}} r\phi_i(S)V^ndS - \
+    \int_0^{S_\text{max}} r\frac{d\phi_i(S)}{dS}SV^ndS \\
+    &= -\int_0^{S_\text{max}} r\phi_i(S) \sum_j V_j^n\phi_j(S)dS \
+    -\int_0^{S_\text{max}} rS\frac{d\phi_i(S)}{dS} \sum_k V_k\phi_k(S)dS \\
     &= -\sum_j r\left(\phi_i(S), \phi_j(S)\right) V_j^n -\
      \sum_k r\left(S\frac{d\phi_i(S)}{dS}, \phi_k(S)\right)V_k^n \\
     &= -r\bold{M}V^n -r\bold{A}V^n, \quad\quad\
@@ -250,14 +260,15 @@ case like above.
 So, again after adding in the constants and exchanging $V^n$ for $V^{n-1}$ where
 applicable, we arrive at the following for (3):
 @f{align*}{
-    &k_n\int_0^{\smax}\phi_i(S)\left[rS\left[(1-\theta)\frac{dV^{n-1}(S)}{dS} +\
+    &k_n\int_0^{S_\text{max}}\phi_i(S)\left[rS\left[(1-\theta)
+        \frac{dV^{n-1}(S)}{dS} +\
      \theta\frac{dV^{n}(S)}{dS}\right]\right]dS \\
     &= k_n\left[-(1-\theta)r\bold{M}V^{n-1} -(1-\theta)r\bold{A}V^{n-1}\
     -\theta r\bold{M}V^n -\theta r\bold{A}V^n\right]
 @f}
 Just as before, we will use $\theta=0$ for the matrix $\textbf{A}$ and
-$\theta=\frac{1}{2}$ for the matrix $\textbf{M}$. So , we arrive at the following
-for (3):
+$\theta=\frac{1}{2}$ for the matrix $\textbf{M}$. So, we arrive at the 
+following for (3):
 @f{align*}{
     k_n\left[-\frac{1}{2}r\bold{M}V^{n-1} - \frac{1}{2}r\bold{M}V^n \
     -r\bold{A}V^{n-1}\right]
@@ -304,7 +315,7 @@ have to be solved in each time step:
 <h3>Test Case</h3>
 For this program, we will use the Method of Manufactured Solutions (MMS) to test
  that it is working correctly. This means that we will choose our solution to be
-  a certain function. For our case, we will use:
+  a certain function similar to step-7. For our case, we will use:
 @f{align*}{
     V(S,\tau) = -\tau^2 - S^2 + 6\tag{**}
 @f}
@@ -314,7 +325,7 @@ This means that, using our PDE, we arrive at the following problem:
     \frac{\sigma^2S^2}{2}\frac{\partial^2 V}{\partial S^2} +\
     rS\frac{\partial V}{\partial S} - rV = f(S,\tau) \\
     &V(0,\tau) = -\tau^2 + 6 \\
-    &V(\smax, \tau) = -\smax^2 - \tau^2 + 6 \\
+    &V(S_\text{max}, \tau) = -S_\text{max}^2 - \tau^2 + 6 \\
     &V(S, 0) = -S^2 + 6
 @f}
 Where, $f(S,\tau) = 2\tau - \sigma^2S^2 - 2rS^2 - r(-\tau^2 - S^2 + 6)$.
@@ -331,7 +342,7 @@ account for the non-zero right hand side.
 
 First, we define the following:
 @f{align*}{
-    F^n_i = \left(\phi_i(S), f^n(S)\right) && \text{,where } f^n(S) =\
+    F^n_i = \left(\phi_i(S), f^n(S)\right), && \text{where } f^n(S) =\
      f(S,\tau_n)
 @f}
 So, we arrive at the new equation:
