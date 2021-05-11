@@ -45,7 +45,7 @@ where
 
 The way we should interpret this equation is that it is a time-dependent partial
 differential equation of one "space" variable
-$S$ as the price of the stock, and $V(S,t)$ is the price of the option at time 
+$S$ as the price of the stock, and $V(S,t)$ is the price of the option at time
 $t$ if the stock price at that time were $S$.
 
 <h3>Particularities of the equation system</h3>
@@ -198,11 +198,11 @@ general integral, which we will solve using integration by parts:
     &= -\int_0^{S_\text{max}} \phi_i(S)\sigma^2S\frac{dV^n(S)}{dS}dS - \
     \int_0^{S_\text{max}} \frac{d\phi_i(S)}{dS}\frac{1}{2}\sigma^2S^2 \
     \frac{dV^n(S)}{dS}dS \\
-    &= -\int_0^{S_\text{max}} \phi_i(S)\sigma^2S \sum_j V_j^n 
+    &= -\int_0^{S_\text{max}} \phi_i(S)\sigma^2S \sum_j V_j^n
         \frac{d\phi_j(S)}{dS}dS \
     -\int_0^{S_\text{max}} \frac{d\phi_i(S)}{dS}\frac{1}{2} \
     \sigma^2S^2  \sum_k V_k^n \frac{d\phi_k(S)}{dS}dS \\
-    &= -\sum_j \sigma^2 \int_0^{S_\text{max}} \phi_i(S)S 
+    &= -\sum_j \sigma^2 \int_0^{S_\text{max}} \phi_i(S)S
         \frac{d\phi_j(S)}{dS}dS V_j^n\
     - \sum_k \frac{1}{2}\sigma^2 \int_0^{S_\text{max}} \frac{d\phi_i(S)}{dS}S^2\
     \frac{d\phi_k}{dS}dS V_k^n \\
@@ -243,7 +243,7 @@ case like above.
 
 @f{align*}{
     &\int_{0}^{S_\text{max}} \phi_i(S)rS\frac{dV^n}{dS}dS \\
-    &= \phi_i(S)rSV^n\Bigg|_0^{S_\text{max}} - \int_0^{S_\text{max}} 
+    &= \phi_i(S)rSV^n\Bigg|_0^{S_\text{max}} - \int_0^{S_\text{max}}
         \left[r\phi_i(S) \
     + r\frac{d\phi_i(S)}{dS}S \right]V^ndS \\
     &= -\int_0^{S_\text{max}} r\phi_i(S)V^ndS - \
@@ -267,7 +267,7 @@ applicable, we arrive at the following for (3):
     -\theta r\bold{M}V^n -\theta r\bold{A}V^n\right]
 @f}
 Just as before, we will use $\theta=0$ for the matrix $\textbf{A}$ and
-$\theta=\frac{1}{2}$ for the matrix $\textbf{M}$. So, we arrive at the 
+$\theta=\frac{1}{2}$ for the matrix $\textbf{M}$. So, we arrive at the
 following for (3):
 @f{align*}{
     k_n\left[-\frac{1}{2}r\bold{M}V^{n-1} - \frac{1}{2}r\bold{M}V^n \

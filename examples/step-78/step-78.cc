@@ -1,6 +1,6 @@
 /* ---------------------------------------------------------------------
  *
- * Copyright (C) 2000 - 2021 by the deal.II authors
+ * Copyright (C) 2021 by the deal.II authors
  *
  * This file is part of the deal.II library.
  *
@@ -56,15 +56,15 @@
 #include <iostream>
 
 // Then the usual placing of all content of this program into a namespace and
-// the importation of the deal.II namespace into the one we will work in. We 
-// also define an identifier to allow for the MMS code to be run when 
+// the importation of the deal.II namespace into the one we will work in. We
+// also define an identifier to allow for the MMS code to be run when
 // <code>MMS</code> is defined. Otherwise, the program solves the original
 // problem:
 namespace BlackScholesSolver
 {
   using namespace dealii;
 
-  #define MMS
+#define MMS
 
   // @sect3{Solution Class}
 
@@ -93,8 +93,8 @@ namespace BlackScholesSolver
   double Solution<dim>::value(const Point<dim> & p,
                               const unsigned int component) const
   {
-    return -Utilities::fixed_power<2,double>(p(component)) - 
-           Utilities::fixed_power<2,double>(this->get_time()) + 6;
+    return -Utilities::fixed_power<2, double>(p(component)) -
+           Utilities::fixed_power<2, double>(this->get_time()) + 6;
   }
 
   template <int dim>
@@ -132,12 +132,11 @@ namespace BlackScholesSolver
                                        const unsigned int component) const
   {
     (void)component;
-    #ifdef MMS
-      return -Utilities::fixed_power<2,double>(p(component)) + 6;
-    #endif
+#ifdef MMS
+    return -Utilities::fixed_power<2, double>(p(component)) + 6;
+#endif
 
     return std::max(p(component) - s_price, 0.);
-    
   }
 
   template <int dim>
@@ -161,9 +160,9 @@ namespace BlackScholesSolver
   {
     (void)component;
     (void)p;
-    #ifdef MMS
-      return -Utilities::fixed_power<2,double>(this->get_time()) + 6;
-    #endif
+#ifdef MMS
+    return -Utilities::fixed_power<2, double>(this->get_time()) + 6;
+#endif
 
     return 0.0;
   }
@@ -192,17 +191,17 @@ namespace BlackScholesSolver
                                          const unsigned int component) const
   {
     (void)component;
-    #ifdef MMS
-    return -Utilities::fixed_power<2,double>(p(component)) - 
-           Utilities::fixed_power<2,double>(this->get_time()) + 6;
-    #endif
-    
-    return (p(component) - s_price) * exp((-interest_rate) * 
-           (this->get_time()));
+#ifdef MMS
+    return -Utilities::fixed_power<2, double>(p(component)) -
+           Utilities::fixed_power<2, double>(this->get_time()) + 6;
+#endif
+
+    return (p(component) - s_price) *
+           exp((-interest_rate) * (this->get_time()));
   }
 
   template <int dim>
-  RightBoundaryValues<dim>::RightBoundaryValues(double s_price, 
+  RightBoundaryValues<dim>::RightBoundaryValues(double s_price,
                                                 double interest_rate)
     : s_price(s_price)
     , interest_rate(interest_rate)
@@ -227,19 +226,20 @@ namespace BlackScholesSolver
                                    const unsigned int component) const
   {
     (void)component;
-    #ifdef MMS
-    return 2 * (this->get_time()) - 
-           Utilities::fixed_power<2,double>(asset_volatility * p(component)) -
-           2 * interest_rate * Utilities::fixed_power<2,double>(p(component)) -
-           interest_rate * (-Utilities::fixed_power<2,double>(p(component)) - 
-           Utilities::fixed_power<2,double>(this->get_time()) + 6);
-    #endif
+#ifdef MMS
+    return 2 * (this->get_time()) -
+           Utilities::fixed_power<2, double>(asset_volatility * p(component)) -
+           2 * interest_rate * Utilities::fixed_power<2, double>(p(component)) -
+           interest_rate *
+             (-Utilities::fixed_power<2, double>(p(component)) -
+              Utilities::fixed_power<2, double>(this->get_time()) + 6);
+#endif
 
     return 0.0;
   }
 
   template <int dim>
-  RightHandSide<dim>::RightHandSide(double asset_volatility, 
+  RightHandSide<dim>::RightHandSide(double asset_volatility,
                                     double interest_rate)
     : asset_volatility(asset_volatility)
     , interest_rate(interest_rate)
@@ -253,7 +253,7 @@ namespace BlackScholesSolver
   // $V_{diff}$ vector mentioned in the introduction. We also define the
   // parameters used in the problem.
 
-  // - <code>maximum_stock_price</code>: The imposed upper bound on the spatial 
+  // - <code>maximum_stock_price</code>: The imposed upper bound on the spatial
   // domain. This is the maximum allowed stock price.
   // - <code>maturity_time</code>: The upper bound on the time domain. This is
   // when the option expires.\n
@@ -575,8 +575,8 @@ namespace BlackScholesSolver
       VectorTools::compute_global_error(triangulation,
                                         difference_per_cell,
                                         VectorTools::H1_seminorm);
-    const QTrapez<1>  q_trapez;
-    const QIterated<dim> q_iterated(q_trapez, fe.degree * 2 + 1);
+    const QTrapezoid<1>  q_trapezoid;
+    const QIterated<dim> q_iterated(q_trapezoid, fe.degree * 2 + 1);
     VectorTools::integrate_difference(dof_handler,
                                       solution,
                                       sol,
@@ -629,7 +629,7 @@ namespace BlackScholesSolver
     std::ofstream error_table_file(error_filename);
     convergence_table.write_tex(error_table_file);
 
-    // Next, we will make the convergence table. We will again write this to 
+    // Next, we will make the convergence table. We will again write this to
     // the console and to the convergence LaTex file.
     convergence_table.add_column_to_supercolumn("cells", "n cells");
     std::vector<std::string> new_order;
@@ -702,13 +702,13 @@ namespace BlackScholesSolver
           }
         setup_system();
         std::cout << std::endl
-          << "===========================================" << std::endl
-          << "Cycle " << cycle << ':' << std::endl
-          << "Number of active cells: " << triangulation.n_active_cells()
-          << std::endl
-          << "Number of degrees of freedom: " << dof_handler.n_dofs()
-          << std::endl
-          << std::endl;
+                  << "===========================================" << std::endl
+                  << "Cycle " << cycle << ':' << std::endl
+                  << "Number of active cells: "
+                  << triangulation.n_active_cells() << std::endl
+                  << "Number of degrees of freedom: " << dof_handler.n_dofs()
+                  << std::endl
+                  << std::endl;
         vmult_result.reinit(solution.size());
         forcing_terms.reinit(solution.size());
 
@@ -739,21 +739,23 @@ namespace BlackScholesSolver
             mass_matrix.vmult(system_rhs, old_solution);
 
             laplace_matrix.vmult(vmult_result, old_solution);
-            system_rhs.add((-1) * (1 - theta) * time_step * 
-                           Utilities::fixed_power<2, double>(asset_volatility) *
-                           0.5, vmult_result);
+            system_rhs.add(
+              (-1) * (1 - theta) * time_step *
+                Utilities::fixed_power<2, double>(asset_volatility) * 0.5,
+              vmult_result);
             mass_matrix.vmult(vmult_result, old_solution);
 
-            system_rhs.add((-1) * (1 - theta) * time_step * interest_rate * 2, 
+            system_rhs.add((-1) * (1 - theta) * time_step * interest_rate * 2,
                            vmult_result);
 
             a_matrix.vmult(vmult_result, old_solution);
             system_rhs.add((-1) * time_step * interest_rate, vmult_result);
 
             b_matrix.vmult(vmult_result, old_solution);
-            system_rhs.add((-1) * 
-                           Utilities::fixed_power<2, double>(asset_volatility) *
-                           time_step * 1, vmult_result);
+            system_rhs.add(
+              (-1) * Utilities::fixed_power<2, double>(asset_volatility) *
+                time_step * 1,
+              vmult_result);
 
             // The second piece is to compute the contributions of the source
             // terms. This corresponds to the term $-k_n\left[\frac{1}{2}F^{n-1}
@@ -786,11 +788,12 @@ namespace BlackScholesSolver
             // is to eliminate hanging node constrained degrees of freedom from
             // the linear system:
             system_matrix.copy_from(mass_matrix);
-            system_matrix.add((theta)*time_step * 
-                        Utilities::fixed_power<2, double>(asset_volatility) *
-                         0.5, laplace_matrix);
-            system_matrix.add((time_step)*interest_rate * theta * (1 + 1), 
-                        mass_matrix);
+            system_matrix.add(
+              (theta)*time_step *
+                Utilities::fixed_power<2, double>(asset_volatility) * 0.5,
+              laplace_matrix);
+            system_matrix.add((time_step)*interest_rate * theta * (1 + 1),
+                              mass_matrix);
 
             constraints.condense(system_matrix, system_rhs);
 
@@ -800,7 +803,7 @@ namespace BlackScholesSolver
             // evaluate it as we have done many times before. The result is used
             //  to also set the correct boundary values in the linear system:
             {
-              RightBoundaryValues<dim> right_boundary_function(strike_price, 
+              RightBoundaryValues<dim> right_boundary_function(strike_price,
                                                                interest_rate);
               LeftBoundaryValues<dim>  left_boundary_function;
               right_boundary_function.set_time(time);
@@ -831,18 +834,18 @@ namespace BlackScholesSolver
               }
             old_solution = solution;
           }
-        #ifdef MMS
-          process_solution();
-        #endif
+#ifdef MMS
+        process_solution();
+#endif
       }
 
     const std::string filename = "solution.vtk";
     std::ofstream     output(filename);
     data_out_stack.write_vtk(output);
 
-    #ifdef MMS
-      write_convergence_table();
-    #endif
+#ifdef MMS
+    write_convergence_table();
+#endif
   }
 
 } // namespace BlackScholesSolver

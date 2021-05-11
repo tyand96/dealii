@@ -48,10 +48,10 @@ n cells         H1                  L2
 What is more interesting is the output of the convergence tables. They are
 outputted into the console, as well into a LaTex file. The convergence tables
 are shown above. Here, you can see that the the solution has a convergence rate
-of O(h) with respect to the H1 norm, and the solution has a convergence rate 
+of O(h) with respect to the H1 norm, and the solution has a convergence rate
 of O(h^2) with respect to the L2 norm.
 
 
 Below is the visualization of the solution.
 
-<img src="https://www.dealii.org/images/steps/developer/step-7.solution.png" alt="">
+<img src="https://www.dealii.org/images/steps/developer/step-78.mms-solution.png" alt="">
