@@ -17,7 +17,7 @@ stock prices exhibit random price fluctuations with a given level of
 of as the inflation rate that simply devalues all money over time). For their
 work, Black and Scholes received the Nobel Prize in Economic Sciences in 1997,
 making this the first tutorial program dealing with a problem for which someone
-has gotten a Nobel Prize.\cite{black1973pricing}
+has gotten a Nobel Prize \cite{black1973pricing}.
 
 The equation reads as follows:
 @f{align*}{
@@ -71,9 +71,9 @@ one that $S$ is not very likely to ever get to. We will call this $S_\text{max}$
 
 Second, after truncating the domain, we need to ask what boundary values we
 should pose at this now finite boundary. To take care of this, we use "put-call"
-parity.\cite{stoll1969relationship} (A "pull option" is one in which I am 
+parity \cite{stoll1969relationship}. A "pull option" is one in which I am
 allowed, but not required, to *sell* a stock at price $K$ to someone at a future
-time $T$.) This says
+time $T$. This says
 @f{align*}{
     V(S,t)+Ke^{-r(T-t)}=P(S,t)+S
 @f}
@@ -337,7 +337,7 @@ real situation. We will implement this in such a way in the code that it is easy
 to exchange -- the introduction of the changes above is just meant to enable the
  use of a manufactured solution.
 
-If the program is working correctly, then it should produce (**) as the 
+If the program is working correctly, then it should produce (**) as the
 solution. This does mean that we need to modify our variational form somewhat to
 account for the non-zero right hand side.
 

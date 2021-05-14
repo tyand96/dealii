@@ -76,7 +76,8 @@ namespace BlackScholesSolver
   class Solution : public Function<dim>
   {
   public:
-    Solution(double maturity_time);
+    Solution(const double maturity_time);
+
     virtual double value(const Point<dim> & p,
                          const unsigned int component = 0) const override;
 
@@ -85,8 +86,16 @@ namespace BlackScholesSolver
              const unsigned int component = 0) const override;
 
   private:
-    double maturity_time;
+    const double maturity_time;
   };
+
+
+  template <int dim>
+  Solution<dim>::Solution(const double maturity_time)
+    : maturity_time(maturity_time)
+  {
+    Assert(dim == 1, ExcNotImplemented());
+  }
 
 
   template <int dim>
@@ -97,6 +106,7 @@ namespace BlackScholesSolver
            Utilities::fixed_power<2, double>(this->get_time()) + 6;
   }
 
+
   template <int dim>
   Tensor<1, dim> Solution<dim>::gradient(const Point<dim> & p,
                                          const unsigned int component) const
@@ -104,128 +114,139 @@ namespace BlackScholesSolver
     return Point<dim>(-2 * p(component));
   }
 
-  template <int dim>
-  Solution<dim>::Solution(double maturity_time)
-    : maturity_time(maturity_time)
-  {}
+
 
   // @sect3{Equation Data}
 
   // In the following classes and functions, we implement the right hand side
   // and boundary values that define this problem and for which we need function
-  // objects. The right hand side is chosen as discussed at the end of the 
+  // objects. The right hand side is chosen as discussed at the end of the
   // introduction.
-
+  //
   // First, we handle the initial condition.
   template <int dim>
   class InitialConditions : public Function<dim>
   {
   public:
-    InitialConditions(double s_price);
-    double         s_price;
+    InitialConditions(const double s_price);
+
     virtual double value(const Point<dim> & p,
                          const unsigned int component = 0) const override;
+
+  private:
+    const double s_price;
   };
+
+
+  template <int dim>
+  InitialConditions<dim>::InitialConditions(const double s_price)
+    : s_price(s_price)
+  {}
+
 
   template <int dim>
   double InitialConditions<dim>::value(const Point<dim> & p,
                                        const unsigned int component) const
   {
-    (void)component;
 #ifdef MMS
     return -Utilities::fixed_power<2, double>(p(component)) + 6;
-#endif
-
+#else
     return std::max(p(component) - s_price, 0.);
+#endif
   }
 
-  template <int dim>
-  InitialConditions<dim>::InitialConditions(double s_price)
-    : s_price(s_price)
-  {}
+
 
   // Next, we handle the left boundary condition.
   template <int dim>
   class LeftBoundaryValues : public Function<dim>
   {
   public:
-    LeftBoundaryValues();
     virtual double value(const Point<dim> & p,
                          const unsigned int component = 0) const override;
   };
 
+
   template <int dim>
-  double LeftBoundaryValues<dim>::value(const Point<dim> & p,
-                                        const unsigned int component) const
+  double LeftBoundaryValues<dim>::value(const Point<dim> &,
+                                        const unsigned int /*component*/) const
   {
-    (void)component;
-    (void)p;
 #ifdef MMS
     return -Utilities::fixed_power<2, double>(this->get_time()) + 6;
+#else
+    return 0.;
 #endif
-
-    return 0.0;
   }
 
-  template <int dim>
-  LeftBoundaryValues<dim>::LeftBoundaryValues()
-  {}
+
 
   // Then, we handle the right boundary condition.
   template <int dim>
   class RightBoundaryValues : public Function<dim>
   {
   public:
-    RightBoundaryValues(double s_price, double interest_rate);
+    RightBoundaryValues(const double s_price, const double interest_rate);
+
     virtual double value(const Point<dim> & p,
                          const unsigned int component = 0) const override;
 
   private:
-    double s_price;
-    double interest_rate;
+    const double s_price;
+    const double interest_rate;
   };
+
+
+  template <int dim>
+  RightBoundaryValues<dim>::RightBoundaryValues(const double s_price,
+                                                const double interest_rate)
+    : s_price(s_price)
+    , interest_rate(interest_rate)
+  {}
 
 
   template <int dim>
   double RightBoundaryValues<dim>::value(const Point<dim> & p,
                                          const unsigned int component) const
   {
-    (void)component;
 #ifdef MMS
     return -Utilities::fixed_power<2, double>(p(component)) -
            Utilities::fixed_power<2, double>(this->get_time()) + 6;
-#endif
-
+#else
     return (p(component) - s_price) *
            exp((-interest_rate) * (this->get_time()));
+#endif
   }
 
-  template <int dim>
-  RightBoundaryValues<dim>::RightBoundaryValues(double s_price,
-                                                double interest_rate)
-    : s_price(s_price)
-    , interest_rate(interest_rate)
-  {}
+
 
   // Finally, we handle the right hand side.
   template <int dim>
   class RightHandSide : public Function<dim>
   {
   public:
-    RightHandSide(double asset_volatility, double interest_rate);
+    RightHandSide(const double asset_volatility, const double interest_rate);
+
     virtual double value(const Point<dim> & p,
                          const unsigned int component = 0) const override;
 
   private:
-    double asset_volatility;
-    double interest_rate;
+    const double asset_volatility;
+    const double interest_rate;
   };
+
+
+  template <int dim>
+  RightHandSide<dim>::RightHandSide(const double asset_volatility,
+                                    const double interest_rate)
+    : asset_volatility(asset_volatility)
+    , interest_rate(interest_rate)
+  {}
+
 
   template <int dim>
   double RightHandSide<dim>::value(const Point<dim> & p,
                                    const unsigned int component) const
   {
-    (void)component;
 #ifdef MMS
     return 2 * (this->get_time()) -
            Utilities::fixed_power<2, double>(asset_volatility * p(component)) -
@@ -233,17 +254,14 @@ namespace BlackScholesSolver
            interest_rate *
              (-Utilities::fixed_power<2, double>(p(component)) -
               Utilities::fixed_power<2, double>(this->get_time()) + 6);
-#endif
-
+#else
+    (void)p;
+    (void)component;
     return 0.0;
+#endif
   }
 
-  template <int dim>
-  RightHandSide<dim>::RightHandSide(double asset_volatility,
-                                    double interest_rate)
-    : asset_volatility(asset_volatility)
-    , interest_rate(interest_rate)
-  {}
+
 
   // @sect3{The <code>BlackScholes</code> Class}
 
@@ -252,7 +270,7 @@ namespace BlackScholesSolver
   // matrices had to be added to calculate the A and B matrices, as well as the
   // $V_{diff}$ vector mentioned in the introduction. We also define the
   // parameters used in the problem.
-
+  //
   // - <code>maximum_stock_price</code>: The imposed upper bound on the spatial
   // domain. This is the maximum allowed stock price.
   // - <code>maturity_time</code>: The upper bound on the time domain. This is
@@ -261,7 +279,7 @@ namespace BlackScholesSolver
   // - <code>interest_rate</code>: The risk free interest rate.\n
   // - <code>strike_price</code>: The aggreed upon price that the buyer will
   // have the option of purchasing  the stocks at the expiration time.
-
+  //
   // Some slight differences between this program and step-26 are the creation
   // of the <code>a_matrix</code> and the <code>b_matrix</code>, which is
   // described in the introduction. We then also need to store the current time,
@@ -274,7 +292,7 @@ namespace BlackScholesSolver
   // a mesh. We refine the mesh once in between each cycle to exhibit the
   // convergence properties of our program. Finally, we store the convergence
   // data into a convergence table.
-
+  //
   // As far as member functions are concerned, we have a function that
   // calculates the convergence information for each cycle, called
   // <code>process_solution</code>. This is just like what is done in step-7.
@@ -286,12 +304,6 @@ namespace BlackScholesSolver
 
     void run();
 
-    const double maximum_stock_price;
-    const double maturity_time;
-    const double asset_volatility;
-    const double interest_rate;
-    const double strike_price;
-
   private:
     void setup_system();
     void solve_time_step();
@@ -299,6 +311,12 @@ namespace BlackScholesSolver
     void process_solution();
     void add_results_for_output();
     void write_convergence_table();
+
+    const double maximum_stock_price;
+    const double maturity_time;
+    const double asset_volatility;
+    const double interest_rate;
+    const double strike_price;
 
     Triangulation<dim> triangulation;
     FE_Q<dim>          fe;
@@ -317,7 +335,6 @@ namespace BlackScholesSolver
     Vector<double> old_solution;
     Vector<double> system_rhs;
 
-
     double       time;
     double       time_step;
     unsigned int timestep_number;
@@ -335,10 +352,10 @@ namespace BlackScholesSolver
 
   // Now, we get to the implementation of the main class. We will set the values
   // for the various parameters used in the problem. These were chosen because
-  // they are fairly normal values for these parameters. Although the stock 
+  // they are fairly normal values for these parameters. Although the stock
   // price has no upper bound in reality (it is in fact infinite), we impose
   // an upper bound that is twice the strike price. This is a somewhat arbitrary
-  // choice to be twice the strike price, but it is large enought to see the 
+  // choice to be twice the strike price, but it is large enought to see the
   // interesting parts of the solution.
   template <int dim>
   BlackScholes<dim>::BlackScholes()
@@ -364,7 +381,7 @@ namespace BlackScholesSolver
   // sizes. We also compute the mass matrix here by calling a function from the
   // library. We will compute the other 3 matrices next, because these need to
   // be computed 'by hand'.
-
+  //
   // Note, that the time step is initialized here because the maturity time was
   // needed to compute the time step.
   template <int dim>
@@ -498,7 +515,6 @@ namespace BlackScholesSolver
           }
       }
 
-
     solution.reinit(dof_handler.n_dofs());
     old_solution.reinit(dof_handler.n_dofs());
     system_rhs.reinit(dof_handler.n_dofs());
@@ -508,7 +524,7 @@ namespace BlackScholesSolver
 
   // The next function is the one that solves the actual linear system for a
   // single time step. The only interesting thing here is that the matrices
-  // we have built are symmetric positive definite, so we can use the 
+  // we have built are symmetric positive definite, so we can use the
   // conjugate gradient method.
   template <int dim>
   void BlackScholes<dim>::solve_time_step()
@@ -525,9 +541,9 @@ namespace BlackScholesSolver
 
   // @sect4{<code>BlackScholes::add_results_for_output</code>}
 
-  // This is simply the function to stitch the solution peices together. For 
+  // This is simply the function to stitch the solution peices together. For
   // this, we create a new layer at each time, and then add the solution vector
-  //  for that timestep. The function then stitches this together with the old 
+  // for that timestep. The function then stitches this together with the old
   // solutions using 'build_patches'.
   template <int dim>
   void BlackScholes<dim>::add_results_for_output()
@@ -541,7 +557,7 @@ namespace BlackScholesSolver
 
   // @sect4{<code>BlackScholes::refine_grid</code>}
 
-  // This is somewhat unnecessary to have a function for the global refinement
+  // It is somewhat unnecessary to have a function for the global refinement
   // that we do. The reason for the function is to allow for the possibility of
   // an adaptive refinement later.
   template <int dim>
@@ -690,7 +706,6 @@ namespace BlackScholesSolver
     GridGenerator::hyper_cube(triangulation, 0.0, maximum_stock_price, true);
     triangulation.refine_global(initial_global_refinement);
 
-
     solution_names.emplace_back("u");
     data_out_stack.declare_data_vector(solution_names,
                                        DataOutStack<dim>::dof_vector);
@@ -706,7 +721,9 @@ namespace BlackScholesSolver
             time            = 0.0;
             timestep_number = 0;
           }
+
         setup_system();
+
         std::cout << std::endl
                   << "===========================================" << std::endl
                   << "Cycle " << cycle << ':' << std::endl
@@ -715,19 +732,15 @@ namespace BlackScholesSolver
                   << "Number of degrees of freedom: " << dof_handler.n_dofs()
                   << std::endl
                   << std::endl;
-        vmult_result.reinit(solution.size());
-        forcing_terms.reinit(solution.size());
 
         VectorTools::interpolate(dof_handler,
                                  InitialConditions<dim>(strike_price),
                                  old_solution);
-
         solution = old_solution;
         if (cycle == (n_cycles - 1))
           {
             add_results_for_output();
           }
-
 
         // Next, we run the main loop which runs until we exceed the maturity
         // time. We first compute the right hand side of the equation, which is
@@ -735,6 +748,8 @@ namespace BlackScholesSolver
         // $\left[-\frac{1}{4}k_n\sigma^2\bold{D}-k_nr\bold{M}+k_n\sigma^2
         // \bold{B}-k_nr\bold{A}+\bold{M}\right]V^{n-1}$. We put these terms
         // into the variable system_rhs, with the help of a temporary vector:
+        vmult_result.reinit(dof_handler.n_dofs());
+        forcing_terms.reinit(dof_handler.n_dofs());
         while (time < maturity_time)
           {
             time += time_step;
@@ -807,7 +822,7 @@ namespace BlackScholesSolver
             // boundary values. To this end, we create a boundary value object,
             // set the proper time to the one of the current time step, and
             // evaluate it as we have done many times before. The result is used
-            //  to also set the correct boundary values in the linear system:
+            // to also set the correct boundary values in the linear system:
             {
               RightBoundaryValues<dim> right_boundary_function(strike_price,
                                                                interest_rate);
