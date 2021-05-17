@@ -111,10 +111,10 @@ namespace BlackScholesSolver
 
   // @sect3{Equation Data}
 
-  // In the following classes and functions, we implement the various pieces of
-  // data that define this problem (right hand side and boundary values) that
-  // are used in this program and for which we need function objects. The right
-  // hand side is chosen as discussed at the end of the introduction.
+  // In the following classes and functions, we implement the right hand side
+  // and boundary values that define this problem and for which we need function
+  // objects. The right hand side is chosen as discussed at the end of the 
+  // introduction.
 
   // First, we handle the initial condition.
   template <int dim>
@@ -335,7 +335,11 @@ namespace BlackScholesSolver
 
   // Now, we get to the implementation of the main class. We will set the values
   // for the various parameters used in the problem. These were chosen because
-  // they are fairly normal values for these parameters.
+  // they are fairly normal values for these parameters. Although the stock 
+  // price has no upper bound in reality (it is in fact infinite), we impose
+  // an upper bound that is twice the strike price. This is a somewhat arbitrary
+  // choice to be twice the strike price, but it is large enought to see the 
+  // interesting parts of the solution.
   template <int dim>
   BlackScholes<dim>::BlackScholes()
     : maximum_stock_price(1.)
@@ -355,7 +359,7 @@ namespace BlackScholesSolver
 
   // @sect4{<code>BlackScholes::setup_system</code>}
 
-  // The next function is the one that sets up the DoFHandler object, computes
+  // The next function sets up the DoFHandler object, computes
   // the constraints, and sets the linear algebra objects to their correct
   // sizes. We also compute the mass matrix here by calling a function from the
   // library. We will compute the other 3 matrices next, because these need to
@@ -503,7 +507,9 @@ namespace BlackScholesSolver
   // @sect4{<code>BlackScholes::solve_time_step</code>}
 
   // The next function is the one that solves the actual linear system for a
-  // single time step. There is nothing surprising here:
+  // single time step. The only interesting thing here is that the matrices
+  // we have built are symmetric positive definite, so we can use the 
+  // conjugate gradient method.
   template <int dim>
   void BlackScholes<dim>::solve_time_step()
   {
@@ -519,10 +525,10 @@ namespace BlackScholesSolver
 
   // @sect4{<code>BlackScholes::add_results_for_output</code>}
 
-  // This is simply the function to build the solution together. For this, we
-  // create a new layer at each time, and then add the solution vector for that
-  // timestep. The function then stitches this together with the old solutions
-  // using 'build_patches'.
+  // This is simply the function to stitch the solution peices together. For 
+  // this, we create a new layer at each time, and then add the solution vector
+  //  for that timestep. The function then stitches this together with the old 
+  // solutions using 'build_patches'.
   template <int dim>
   void BlackScholes<dim>::add_results_for_output()
   {
@@ -536,7 +542,7 @@ namespace BlackScholesSolver
   // @sect4{<code>BlackScholes::refine_grid</code>}
 
   // This is somewhat unnecessary to have a function for the global refinement
-  // that we do. The reason for the function, is to allow for the possibility of
+  // that we do. The reason for the function is to allow for the possibility of
   // an adaptive refinement later.
   template <int dim>
   void BlackScholes<dim>::refine_grid()
